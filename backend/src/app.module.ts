@@ -42,6 +42,23 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
 import { ServiceRepairModule } from './service-repair/service-repair.module';
 import { WarrantyModule } from './warranty/warranty.module';
 import { ReportsModule } from './reports/reports.module';
+import { KycModule } from './kyc/kyc.module';
+import { BeneficiaryModule } from './beneficiary/beneficiary.module';
+import { PaymentGatewayModule } from './payment-gateway/payment-gateway.module';
+import { ReconciliationModule } from './reconciliation/reconciliation.module';
+import { RefundModule } from './refund/refund.module';
+import { WalletsModule } from './wallets/wallets.module';
+import { WalletTransactionsModule } from './wallet-transactions/wallet-transactions.module';
+import { CommissionModule } from './commission/commission.module';
+import { SettlementModule } from './settlement/settlement.module';
+import { FinancialTransactionsModule } from './financial-transactions/financial-transactions.module';
+import { DmtModule } from './dmt/dmt.module';
+import { AepsModule } from './aeps/aeps.module';
+import { BbpsModule } from './bbps/bbps.module';
+import { RechargeModule } from './recharge/recharge.module';
+import { FraudModule } from './fraud/fraud.module';
+import { ProvidersModule } from './providers/providers.module';
+import { FinancialReportsModule } from './financial-reports/financial-reports.module';
 
 @Module({
   imports: [
@@ -88,6 +105,23 @@ import { ReportsModule } from './reports/reports.module';
     ServiceRepairModule,
     WarrantyModule,
     ReportsModule,
+    KycModule,
+    BeneficiaryModule,
+    PaymentGatewayModule,
+    ReconciliationModule,
+    RefundModule,
+    WalletsModule,
+    WalletTransactionsModule,
+    CommissionModule,
+    SettlementModule,
+    FinancialTransactionsModule,
+    DmtModule,
+    AepsModule,
+    BbpsModule,
+    RechargeModule,
+    FraudModule,
+    ProvidersModule,
+    FinancialReportsModule,
   ],
 })
 export class AppModule {}

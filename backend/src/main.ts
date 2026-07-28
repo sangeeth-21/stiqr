@@ -71,6 +71,23 @@ async function bootstrap() {
     .addTag('service-repair', 'Service & repair management')
     .addTag('warranty', 'Warranty management')
     .addTag('reports', 'Reports & dashboard')
+    .addTag('wallet', 'Digital wallet management')
+    .addTag('wallet-transactions', 'Wallet credit/debit transactions')
+    .addTag('commission', 'Commission engine')
+    .addTag('settlement', 'Settlement engine')
+    .addTag('financial-transactions', 'Financial transaction processing')
+    .addTag('dmt', 'Domestic Money Transfer')
+    .addTag('aeps', 'Aadhaar Enabled Payment System')
+    .addTag('bbps', 'Bill Payment System')
+    .addTag('recharge', 'Recharge services')
+    .addTag('payment-gateway', 'Payment gateway integration')
+    .addTag('kyc', 'KYC management')
+    .addTag('beneficiary', 'Beneficiary management')
+    .addTag('reconciliation', 'Transaction reconciliation')
+    .addTag('refund', 'Refund management')
+    .addTag('fraud', 'Fraud detection & security')
+    .addTag('providers', 'Provider integration')
+    .addTag('financial-reports', 'Financial reports & analytics')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

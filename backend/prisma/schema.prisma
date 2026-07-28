@@ -1190,3 +1190,680 @@ model Report {
   @@index([generatedAt])
   @@map("reports")
 }
+
+// ============================================================
+// MODULE 3: FinTech, Payments & Financial Services
+// ============================================================
+
+model Wallet {
+  id               String    @id @default(uuid())
+  shopId           String
+  holderType       String    // SHOP, AGENT, DISTRIBUTOR, RETAILER, CUSTOMER
+  holderId         String
+  balance          Float     @default(0)
+  holdBalance      Float     @default(0)
+  reservedBalance  Float     @default(0)
+  status           String    @default("ACTIVE") // ACTIVE, FROZEN, CLOSED
+  currency         String    @default("INR")
+  dailyLimit       Float     @default(100000)
+  monthlyLimit     Float     @default(1000000)
+  currentDayUsage  Float     @default(0)
+  currentMonthUsage Float    @default(0)
+  lastUsageReset   DateTime?
+  frozenAt         DateTime?
+  closedAt         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  transactions     WalletTransaction[]
+  ledger           WalletLedger[]
+  settlements      Settlement[]
+
+  @@unique([shopId, holderType, holderId])
+  @@index([shopId])
+  @@index([holderType, holderId])
+  @@index([status])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id                 String    @id @default(uuid())
+  walletId           String
+  type               String    // CREDIT, DEBIT, REVERSAL, REFUND, HOLD, RELEASE
+  amount             Float
+  balance            Float     // running balance after transaction
+  referenceType      String?
+  referenceId        String?
+  referenceNumber    String?
+  description        String?
+  status             String    @default("PENDING") // INITIATED, PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED
+  idempotencyKey     String?   @unique
+  providerReference  String?
+  metadata           String?
+  processedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  wallet             Wallet    @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@index([status])
+  @@index([referenceType, referenceId])
+  @@index([createdAt])
+  @@map("wallet_transactions")
+}
+
+model WalletLedger {
+  id           String   @id @default(uuid())
+  walletId     String
+  transactionId String?
+  type         String   // CREDIT, DEBIT, ADJUSTMENT, COMMISSION, SETTLEMENT, FEE
+  amount       Float
+  balanceAfter Float
+  description  String?
+  referenceType String?
+  referenceId  String?
+  createdBy    String?
+  createdAt    DateTime @default(now())
+
+  wallet       Wallet   @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@index([transactionId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("wallet_ledgers")
+}
+
+model CommissionRule {
+  id              String    @id @default(uuid())
+  shopId          String
+  name            String
+  serviceType     String    // DMT, AEPS, BBPS, RECHARGE, PAYMENT, ALL
+  calculationType String    // PERCENTAGE, FIXED, SLAB
+  rate            Float     @default(0)
+  minAmount       Float     @default(0)
+  maxAmount       Float     @default(999999999)
+  minCommission   Float     @default(0)
+  maxCommission   Float     @default(999999)
+  targetRole      String    // DISTRIBUTOR, RETAILER, AGENT
+  isActive        Boolean   @default(true)
+  priority        Int       @default(0)
+  validFrom       DateTime?
+  validTo         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  slabs           CommissionSlab[]
+  ledger          CommissionLedger[]
+
+  @@index([shopId])
+  @@index([serviceType])
+  @@index([isActive])
+  @@map("commission_rules")
+}
+
+model CommissionSlab {
+  id          String   @id @default(uuid())
+  ruleId      String
+  minAmount   Float
+  maxAmount   Float
+  rate        Float    @default(0)
+  fixedAmount Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  rule        CommissionRule @relation(fields: [ruleId], references: [id])
+
+  @@index([ruleId])
+  @@map("commission_slabs")
+}
+
+model CommissionLedger {
+  id                String   @id @default(uuid())
+  shopId            String
+  ruleId            String?
+  transactionType   String
+  transactionId     String?
+  amount            Float
+  commissionAmount  Float
+  targetShopId      String?
+  targetHolderType  String?
+  targetHolderId    String?
+  status            String   @default("PENDING") // PENDING, PAID, REVERSED
+  paidAt            DateTime?
+  settledAt         DateTime?
+  createdAt         DateTime @default(now())
+
+  rule              CommissionRule? @relation(fields: [ruleId], references: [id])
+
+  @@index([shopId])
+  @@index([targetShopId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("commission_ledgers")
+}
+
+model Settlement {
+  id                String    @id @default(uuid())
+  shopId            String
+  walletId          String
+  amount            Float
+  charges           Float     @default(0)
+  netAmount         Float
+  bankAccountNumber String
+  bankName          String?
+  ifscCode          String
+  accountHolderName String
+  status            String    @default("REQUESTED") // REQUESTED, APPROVED, PROCESSING, COMPLETED, FAILED
+  utrNumber         String?
+  processedBy       String?
+  processedAt       DateTime?
+  failureReason     String?
+  retryCount        Int       @default(0)
+  nextRetryAt       DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  wallet            Wallet    @relation(fields: [walletId], references: [id])
+
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("settlements")
+}
+
+model DMTSender {
+  id                String    @id @default(uuid())
+  shopId            String
+  mobile            String
+  name              String
+  address           String?
+  maxTransferLimit  Float     @default(50000)
+  totalTransferred  Float     @default(0)
+  kycStatus         String    @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verificationOtp   String?
+  otpExpiry         DateTime?
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  beneficiaries     DMTBeneficiary[]
+  transfers         DMTTransfer[]
+
+  @@unique([shopId, mobile])
+  @@index([shopId])
+  @@map("dmt_senders")
+}
+
+model DMTBeneficiary {
+  id              String    @id @default(uuid())
+  senderId        String
+  name            String
+  bankName        String
+  accountNumber   String
+  ifscCode        String
+  accountType     String    @default("SAVINGS") // SAVINGS, CURRENT
+  mobile          String?
+  nickname        String?
+  isVerified      Boolean   @default(false)
+  isFavourite     Boolean   @default(false)
+  status          String    @default("ACTIVE") // ACTIVE, DELETED
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  sender          DMTSender @relation(fields: [senderId], references: [id])
+  transfers       DMTTransfer[]
+
+  @@index([senderId])
+  @@map("dmt_beneficiaries")
+}
+
+model DMTTransfer {
+  id              String          @id @default(uuid())
+  senderId        String
+  beneficiaryId   String
+  shopId          String
+  amount          Float
+  charges         Float           @default(0)
+  totalDebited    Float
+  referenceNumber String          @unique
+  providerReference String?
+  providerName    String?
+  status          String          @default("INITIATED") // INITIATED, PENDING, PROCESSING, SUCCESS, FAILED, REFUNDED
+  failureReason   String?
+  initiatedAt     DateTime        @default(now())
+  completedAt     DateTime?
+  refundStatus    String?
+  refundAmount    Float?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  sender          DMTSender       @relation(fields: [senderId], references: [id])
+  beneficiary     DMTBeneficiary  @relation(fields: [beneficiaryId], references: [id])
+
+  @@index([senderId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("dmt_transfers")
+}
+
+model AEPSTransaction {
+  id                String    @id @default(uuid())
+  shopId            String
+  aadhaarNumber     String
+  biometricType     String    // FINGERPRINT, IRIS
+  transactionType   String    // BALANCE_ENQUIRY, CASH_WITHDRAWAL, CASH_DEPOSIT, MINI_STATEMENT
+  amount            Float?
+  bankIin           String?
+  referenceNumber   String    @unique
+  providerReference String?
+  status            String    @default("INITIATED") // INITIATED, PENDING, SUCCESS, FAILED
+  failureReason     String?
+  settlementStatus  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("aeps_transactions")
+}
+
+model BBPSBiller {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // ELECTRICITY, WATER, GAS, BROADBAND, DTH, FASTAG, INSURANCE, LOAN, MUNICIPAL, OTHER
+  providerCode String
+  isActive    Boolean  @default(true)
+  logoUrl     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payments    BBPSBillPayment[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("bbps_billers")
+}
+
+model BBPSBillPayment {
+  id              String    @id @default(uuid())
+  shopId          String
+  billerId        String
+  consumerNumber  String
+  customerName    String?
+  billAmount      Float
+  convenienceFee  Float     @default(0)
+  totalAmount     Float
+  paymentMode     String?   // WALLET, UPI, CARD
+  status          String    @default("BILL_FETCHED") // BILL_FETCHED, PAYMENT_INITIATED, PAYMENT_SUCCESS, PAYMENT_FAILED, REFUNDED
+  receiptNumber   String?
+  providerReference String?
+  paidAt          DateTime?
+  refundStatus    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  biller          BBPSBiller @relation(fields: [billerId], references: [id])
+
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("bbps_bill_payments")
+}
+
+model Recharge {
+  id                 String    @id @default(uuid())
+  shopId             String
+  type               String    // MOBILE, DTH, DATACARD, OTT, FASTAG
+  operator           String?
+  operatorCode       String?
+  mobileOrAccountNumber String
+  amount             Float
+  convenienceFee     Float     @default(0)
+  totalDebited       Float
+  referenceNumber    String    @unique
+  providerReference  String?
+  status             String    @default("INITIATED") // INITIATED, PENDING, SUCCESS, FAILED, REFUNDED
+  failureReason      String?
+  paidAt             DateTime?
+  refundStatus       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([shopId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("recharges")
+}
+
+model PaymentGatewayTransaction {
+  id              String    @id @default(uuid())
+  shopId          String
+  amount          Float
+  currency        String    @default("INR")
+  paymentMethod   String    // UPI, CREDIT_CARD, DEBIT_CARD, NET_BANKING, WALLET, QR
+  provider        String    // RAZORPAY, CASHFREE, STRIPE, PHONEPE, PAYU
+  providerOrderId String?
+  providerPaymentId String?
+  customerEmail   String?
+  customerPhone   String?
+  description     String?
+  status          String    @default("CREATED") // CREATED, AUTHORIZED, CAPTURED, FAILED, REFUNDED
+  capturedAt      DateTime?
+  refundAmount    Float     @default(0)
+  metadata        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  webhooks        PaymentWebhook[]
+
+  @@index([shopId])
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payment_gateway_transactions")
+}
+
+model PaymentWebhook {
+  id            String   @id @default(uuid())
+  provider      String
+  eventType     String
+  payload       String
+  signature     String?
+  processed     Boolean  @default(false)
+  processedAt   DateTime?
+  error         String?
+  createdAt     DateTime @default(now())
+
+  transaction   PaymentGatewayTransaction? @relation(fields: [transactionId], references: [id])
+  transactionId String?
+
+  @@index([provider])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("payment_webhooks")
+}
+
+model KYC {
+  id                String    @id @default(uuid())
+  shopId            String
+  holderType        String    // SHOP, AGENT, RETAILER, CUSTOMER
+  holderId          String
+  panNumber         String?
+  aadhaarNumber     String?
+  bankAccountNumber String?
+  ifscCode          String?
+  status            String    @default("NOT_STARTED") // NOT_STARTED, PENDING, VERIFIED, REJECTED
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  rejectionReason   String?
+  expiryDate        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  documents         KYCDocument[]
+
+  @@unique([shopId, holderType, holderId])
+  @@index([shopId])
+  @@index([status])
+  @@map("kycs")
+}
+
+model KYCDocument {
+  id           String   @id @default(uuid())
+  kycId        String
+  documentType String   // PAN, AADHAAR, BANK_STATEMENT, ADDRESS_PROOF, PHOTO
+  fileUrl      String
+  fileName     String?
+  fileSize     Int?
+  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  kyc          KYC      @relation(fields: [kycId], references: [id])
+
+  @@index([kycId])
+  @@map("kyc_documents")
+}
+
+model Beneficiary {
+  id              String    @id @default(uuid())
+  shopId          String
+  name            String
+  accountNumber   String
+  bankName        String
+  ifscCode        String
+  accountType     String    @default("SAVINGS")
+  mobile          String?
+  nickname        String?
+  isFavourite     Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([shopId])
+  @@map("beneficiaries")
+}
+
+model FinancialTransaction {
+  id                String    @id @default(uuid())
+  shopId            String
+  type              String    // DMT, AEPS, BBPS, RECHARGE, PAYMENT, WALLET_TOPUP, COMMISSION, SETTLEMENT
+  referenceType     String?
+  referenceId       String?
+  amount            Float
+  charges           Float     @default(0)
+  totalAmount       Float
+  walletBefore      Float?
+  walletAfter       Float?
+  status            String    @default("INITIATED") // INITIATED, PENDING, PROCESSING, SUCCESS, FAILED, REFUNDED, REVERSED, CANCELLED
+  provider          String?
+  providerReference String?
+  failureReason     String?
+  initiatedBy       String?
+  ipAddress         String?
+  deviceInfo        String?
+  riskScore         Float     @default(0)
+  metadata          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  logs              TransactionLog[]
+  refund            Refund[]
+
+  @@index([shopId])
+  @@index([type])
+  @@index([status])
+  @@index([referenceType, referenceId])
+  @@index([createdAt])
+  @@map("financial_transactions")
+}
+
+model TransactionLog {
+  id            String   @id @default(uuid())
+  transactionId String
+  action        String
+  status        String
+  message       String?
+  metadata      String?
+  createdAt     DateTime @default(now())
+
+  transaction   FinancialTransaction @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId])
+  @@index([createdAt])
+  @@map("transaction_logs")
+}
+
+model Reconciliation {
+  id                 String   @id @default(uuid())
+  date               DateTime
+  shopId             String?
+  serviceType        String
+  totalTransactions  Int      @default(0)
+  matchedCount       Int      @default(0)
+  mismatchedCount    Int      @default(0)
+  missingCount       Int      @default(0)
+  status             String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  reconciledBy       String?
+  reconciledAt       DateTime?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  logs               ReconciliationLog[]
+
+  @@index([shopId])
+  @@index([date])
+  @@index([status])
+  @@map("reconciliations")
+}
+
+model ReconciliationLog {
+  id                String   @id @default(uuid())
+  reconciliationId  String
+  transactionId     String?
+  providerReference String?
+  platformAmount    Float
+  providerAmount    Float
+  status            String   // MATCHED, MISMATCHED, MISSING_ON_PLATFORM, MISSING_ON_PROVIDER
+  resolution        String?
+  resolvedBy        String?
+  resolvedAt        DateTime?
+  createdAt         DateTime @default(now())
+
+  reconciliation    Reconciliation @relation(fields: [reconciliationId], references: [id])
+
+  @@index([reconciliationId])
+  @@map("reconciliation_logs")
+}
+
+model Refund {
+  id                     String    @id @default(uuid())
+  shopId                 String
+  originalTransactionId  String
+  refundType             String    // FULL, PARTIAL
+  amount                 Float
+  reason                 String?
+  status                 String    @default("REQUESTED") // REQUESTED, APPROVED, PROCESSING, COMPLETED, REJECTED
+  approvedBy             String?
+  approvedAt             DateTime?
+  processedAt            DateTime?
+  utrNumber              String?
+  failureReason          String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  transaction            FinancialTransaction @relation(fields: [originalTransactionId], references: [id])
+
+  @@index([shopId])
+  @@index([originalTransactionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("refunds")
+}
+
+model FraudRule {
+  id         String   @id @default(uuid())
+  name       String
+  ruleType   String   // VELOCITY, LIMIT, BLACKLIST, GEOLOCATION, DEVICE, DUPLICATE
+  config     String   // JSON
+  severity   String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  isActive   Boolean  @default(true)
+  action     String   @default("ALERT") // ALERT, BLOCK, FREEZE_WALLET, REVIEW
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  alerts     FraudAlert[]
+
+  @@index([isActive])
+  @@index([ruleType])
+  @@map("fraud_rules")
+}
+
+model FraudAlert {
+  id            String    @id @default(uuid())
+  ruleId        String?
+  transactionId String?
+  shopId        String
+  alertType     String
+  description   String?
+  riskScore     Float     @default(0)
+  status        String    @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, FALSE_POSITIVE
+  assignedTo    String?
+  resolvedAt    DateTime?
+  resolution    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  rule          FraudRule? @relation(fields: [ruleId], references: [id])
+
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("fraud_alerts")
+}
+
+model Blacklist {
+  id           String    @id @default(uuid())
+  entityType   String    // MOBILE, AADHAAR, EMAIL, IP, DEVICE, ACCOUNT
+  entityValue  String
+  reason       String?
+  expiresAt    DateTime?
+  addedBy      String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([entityType, entityValue])
+  @@index([entityType])
+  @@index([isActive])
+  @@map("blacklists")
+}
+
+model ProviderConfig {
+  id                String   @id @default(uuid())
+  provider          String
+  serviceType       String
+  apiEndpoint       String?
+  apiKeyEncrypted   String?
+  apiSecretEncrypted String?
+  merchantId        String?
+  isActive          Boolean  @default(true)
+  config            String?  // JSON
+  priority          Int      @default(0)
+  failoverProviderId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([provider, serviceType])
+  @@index([serviceType])
+  @@map("provider_configs")
+}
+
+model ProviderLog {
+  id              String   @id @default(uuid())
+  provider        String
+  serviceType     String?
+  requestUrl      String?
+  requestBody     String?
+  responseBody    String?
+  statusCode      Int?
+  latency         Int?
+  success         Boolean  @default(true)
+  error           String?
+  transactionId   String?
+  createdAt       DateTime @default(now())
+
+  @@index([provider])
+  @@index([success])
+  @@index([createdAt])
+  @@map("provider_logs")
+}
