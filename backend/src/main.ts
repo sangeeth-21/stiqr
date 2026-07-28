@@ -88,6 +88,20 @@ async function bootstrap() {
     .addTag('fraud', 'Fraud detection & security')
     .addTag('providers', 'Provider integration')
     .addTag('financial-reports', 'Financial reports & analytics')
+    .addTag('analytics', 'Analytics & business intelligence')
+    .addTag('ai', 'AI assistant & predictions')
+    .addTag('ocr', 'OCR & document processing')
+    .addTag('search', 'Global search')
+    .addTag('automation', 'Automation engine')
+    .addTag('backup', 'Backup & restore')
+    .addTag('admin', 'System administration')
+    .addTag('plugins', 'Plugin management')
+    .addTag('api-management', 'API keys, webhooks & OAuth')
+    .addTag('security', 'Security center')
+    .addTag('errors', 'Error tracking')
+    .addTag('integrations', 'Integration hub')
+    .addTag('localization', 'Multi-language support')
+    .addTag('tenant-admin', 'Tenant administration & audit')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

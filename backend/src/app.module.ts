@@ -59,6 +59,20 @@ import { RechargeModule } from './recharge/recharge.module';
 import { FraudModule } from './fraud/fraud.module';
 import { ProvidersModule } from './providers/providers.module';
 import { FinancialReportsModule } from './financial-reports/financial-reports.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
+import { OcrModule } from './ocr/ocr.module';
+import { SearchModule } from './search/search.module';
+import { AutomationModule } from './automation/automation.module';
+import { BackupModule } from './backup/backup.module';
+import { SystemAdminModule } from './system-admin/system-admin.module';
+import { PluginsModule } from './plugins/plugins.module';
+import { ApiManagementModule } from './api-management/api-management.module';
+import { SecurityCenterModule } from './security-center/security-center.module';
+import { ErrorTrackingModule } from './error-tracking/error-tracking.module';
+import { IntegrationHubModule } from './integration-hub/integration-hub.module';
+import { LocalizationModule } from './localization/localization.module';
+import { TenantAdminModule } from './tenant-admin/tenant-admin.module';
 
 @Module({
   imports: [
@@ -122,6 +136,20 @@ import { FinancialReportsModule } from './financial-reports/financial-reports.mo
     FraudModule,
     ProvidersModule,
     FinancialReportsModule,
+    AnalyticsModule,
+    AiAssistantModule,
+    OcrModule,
+    SearchModule,
+    AutomationModule,
+    BackupModule,
+    SystemAdminModule,
+    PluginsModule,
+    ApiManagementModule,
+    SecurityCenterModule,
+    ErrorTrackingModule,
+    IntegrationHubModule,
+    LocalizationModule,
+    TenantAdminModule,
   ],
 })
 export class AppModule {}

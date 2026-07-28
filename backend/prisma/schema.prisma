@@ -1867,3 +1867,607 @@ model ProviderLog {
   @@index([createdAt])
   @@map("provider_logs")
 }
+
+// ============================================================
+// MODULE 4: Enterprise Services, AI, Analytics & System Admin
+// ============================================================
+
+model AnalyticsEvent {
+  id            String   @id @default(uuid())
+  shopId        String?
+  userId        String?
+  eventType     String   // PAGE_VIEW, CLICK, PURCHASE, SEARCH, LOGIN, FEATURE_USE
+  category      String?  // SALES, INVENTORY, USER, SYSTEM, FINANCE
+  action        String   // any custom action name
+  label         String?
+  value         Float?
+  metadata      String?  // JSON string for arbitrary data
+  ipAddress     String?
+  userAgent     String?
+  sessionId     String?
+  createdAt     DateTime @default(now())
+
+  @@index([shopId])
+  @@index([userId])
+  @@index([eventType])
+  @@index([category])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+model AnalyticsDashboard {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  isDefault     Boolean  @default(false)
+  isPublic      Boolean  @default(true)
+  layout        String?  // JSON for grid layout
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  widgets       AnalyticsWidget[]
+
+  @@map("analytics_dashboards")
+}
+
+model AnalyticsWidget {
+  id            String   @id @default(uuid())
+  dashboardId   String
+  name          String
+  widgetType    String   // CHART, TABLE, KPI, MAP, LIST, GAUGE
+  chartType     String?  // LINE, BAR, PIE, DOUGHNUT, AREA, SCATTER
+  dataSource    String   // REVENUE, SALES, PRODUCTS, CUSTOMERS, INVENTORY, CUSTOM
+  config        String?  // JSON for widget configuration
+  position      Int      @default(0)
+  width         Int      @default(1)
+  height        Int      @default(1)
+  refreshInterval Int?   // seconds
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dashboard     AnalyticsDashboard @relation(fields: [dashboardId], references: [id])
+
+  @@index([dashboardId])
+  @@map("analytics_widgets")
+}
+
+model AIConversation {
+  id            String   @id @default(uuid())
+  shopId        String?
+  userId        String
+  title         String?
+  model         String?  // gpt-4, gpt-3.5-turbo, ollama, etc.
+  status        String   @default("ACTIVE") // ACTIVE, ARCHIVED, DELETED
+  totalTokens   Int      @default(0)
+  messageCount  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  messages      AIMessage[]
+
+  @@index([shopId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("ai_conversations")
+}
+
+model AIMessage {
+  id              String   @id @default(uuid())
+  conversationId  String
+  role            String   // USER, ASSISTANT, SYSTEM
+  content         String
+  tokens          Int      @default(0)
+  model           String?
+  latencyMs       Int?
+  metadata        String?  // JSON
+  createdAt       DateTime @default(now())
+
+  conversation    AIConversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("ai_messages")
+}
+
+model AIPrediction {
+  id            String   @id @default(uuid())
+  shopId        String?
+  type          String   // SALES, INVENTORY, REVENUE, DEMAND, CHURN
+  entity_id     String?  // product_id, customer_id, etc.
+  period        String   // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+  predictedValue Float
+  confidence    Float
+  actualValue   Float?
+  model         String?
+  metadata      String?  // JSON
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([shopId])
+  @@index([type])
+  @@index([period])
+  @@index([createdAt])
+  @@map("ai_predictions")
+}
+
+model OCRDocument {
+  id            String   @id @default(uuid())
+  shopId        String?
+  userId        String?
+  documentType  String   // INVOICE, RECEIPT, AADHAAR, PAN, PASSPORT, GST_CERTIFICATE, OTHER
+  originalUrl   String
+  processedUrl  String?
+  status        String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  ocrEngine     String?  // TESSERACT, GOOGLE_VISION, AWS_TEXTRACT, AZURE FormRecognizer
+  extractedData String?  // JSON with extracted fields
+  confidence    Float?
+  errorMessage  String?
+  metadata      String?  // JSON
+  processedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([userId])
+  @@index([documentType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("ocr_documents")
+}
+
+model AutomationRule {
+  id            String   @id @default(uuid())
+  shopId        String?
+  name          String
+  description   String?
+  triggerType   String   // SCHEDULE, EVENT, MANUAL
+  triggerConfig String?  // JSON - cron expression, event name, etc.
+  actionType    String   // WEBHOOK, EMAIL, SMS, NOTIFICATION, UPDATE_DB, API_CALL
+  actionConfig  String?  // JSON - action configuration
+  conditions    String?  // JSON - filter conditions
+  isActive      Boolean  @default(true)
+  lastRunAt     DateTime?
+  lastStatus    String?  // SUCCESS, FAILED, RUNNING
+  lastError     String?
+  runCount      Int      @default(0)
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  executions    AutomationExecution[]
+
+  @@index([shopId])
+  @@index([triggerType])
+  @@index([isActive])
+  @@map("automation_rules")
+}
+
+model AutomationExecution {
+  id            String   @id @default(uuid())
+  ruleId        String
+  status        String   @default("RUNNING") // RUNNING, SUCCESS, FAILED, SKIPPED
+  input         String?  // JSON
+  output        String?  // JSON
+  error         String?
+  durationMs    Int?
+  triggeredBy   String?  // SCHEDULE, MANUAL, EVENT
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  rule          AutomationRule @relation(fields: [ruleId], references: [id])
+
+  @@index([ruleId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("automation_executions")
+}
+
+model ScheduledJob {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  jobType       String   // REPORT, BACKUP, CLEANUP, SYNC, NOTIFICATION, CUSTOM
+  schedule      String   // cron expression
+  config        String?  // JSON job configuration
+  isActive      Boolean  @default(true)
+  lastRunAt     DateTime?
+  nextRunAt     DateTime?
+  lastStatus    String?
+  runCount      Int      @default(0)
+  failureCount  Int      @default(0)
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([jobType])
+  @@map("scheduled_jobs")
+}
+
+model Backup {
+  id            String   @id @default(uuid())
+  name          String
+  type          String   // FULL, INCREMENTAL, FILES, DATABASE
+  status        String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  size          Float?
+  storageType   String   @default("LOCAL") // LOCAL, S3, GCS, AZURE
+  storagePath   String?
+  encrypted     Boolean  @default(false)
+  checksum      String?
+  error         String?
+  durationMs    Int?
+  metadata      String?  // JSON - table counts, etc.
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("backups")
+}
+
+model FeatureFlag {
+  id            String   @id @default(uuid())
+  key           String   @unique
+  name          String
+  description   String?
+  isEnabled     Boolean  @default(false)
+  valueType     String?  // BOOLEAN, STRING, NUMBER, JSON
+  defaultValue  String?
+  allowedRoles  String?  // JSON array of role names
+  shopOverrides String?  // JSON map of shopId -> value
+  percentage    Int?     // percentage rollout 0-100
+  metadata      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("feature_flags")
+}
+
+model SystemAnnouncement {
+  id            String   @id @default(uuid())
+  title         String
+  message       String
+  type          String   @default("INFO") // INFO, WARNING, CRITICAL, MAINTENANCE
+  severity      String   @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+  targetRoles   String?  // JSON array
+  targetShops   String?  // JSON array
+  isActive      Boolean  @default(true)
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([type])
+  @@map("system_announcements")
+}
+
+model Plugin {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  displayName   String
+  description   String?
+  version       String
+  author        String?
+  category      String?  // PAYMENT, CRM, ERP, ANALYTICS, COMMUNICATION, OTHER
+  status        String   @default("INSTALLED") // INSTALLED, ENABLED, DISABLED, UPDATING, ERROR
+  configSchema  String?  // JSON schema for configuration
+  config        String?  // JSON current configuration
+  permissions   String?  // JSON array of permissions required
+  hooks         String?  // JSON - registered hooks/endpoints
+  minVersion    String?  // minimum platform version
+  dependencies  String?  // JSON array of dependency plugin names
+  installedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@map("plugins")
+}
+
+model APIKey {
+  id            String   @id @default(uuid())
+  shopId        String?
+  name          String
+  keyHash       String   @unique
+  keyPrefix     String   // first 8 chars for identification
+  scopes        String?  // JSON array of allowed scopes
+  rateLimit     Int      @default(1000) // requests per hour
+  isActive      Boolean  @default(true)
+  expiresAt     DateTime?
+  lastUsedAt    DateTime?
+  usageCount    Int      @default(0)
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([keyHash])
+  @@index([isActive])
+  @@map("api_keys")
+}
+
+model Webhook {
+  id            String   @id @default(uuid())
+  shopId        String?
+  name          String
+  url           String
+  secret        String?
+  events        String   // JSON array of event types
+  headers       String?  // JSON custom headers
+  isActive      Boolean  @default(true)
+  retryCount    Int      @default(3)
+  timeoutMs     Int      @default(30000)
+  lastTriggeredAt DateTime?
+  lastStatus    Int?
+  failureCount  Int      @default(0)
+  metadata      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  deliveries    WebhookDelivery[]
+
+  @@index([shopId])
+  @@index([isActive])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id            String   @id @default(uuid())
+  webhookId     String
+  event         String
+  payload       String?  // JSON
+  responseStatus Int?
+  responseBody  String?
+  success       Boolean  @default(false)
+  attempts      Int      @default(0)
+  nextRetryAt   DateTime?
+  deliveredAt   DateTime?
+
+  webhook       Webhook @relation(fields: [webhookId], references: [id])
+
+  @@index([webhookId])
+  @@index([success])
+  @@index([deliveredAt])
+  @@map("webhook_deliveries")
+}
+
+model OAuthClient {
+  id            String   @id @default(uuid())
+  name          String
+  clientId      String   @unique
+  clientSecret  String
+  redirectUris  String   // JSON array
+  scopes        String?  // JSON array
+  grantTypes    String?  // JSON array: authorization_code, client_credentials, etc.
+  isActive      Boolean  @default(true)
+  shopId        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([shopId])
+  @@map("oauth_clients")
+}
+
+model SecurityAlert {
+  id            String   @id @default(uuid())
+  shopId        String?
+  userId        String?
+  alertType     String   // LOGIN_SUSPICIOUS, BRUTE_FORCE, API_ABUSE, UNAUTHORIZED_ACCESS, DATA_BREACH, IP_BLOCKED
+  severity      String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  title         String
+  description   String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      String?  // JSON
+  status        String   @default("OPEN") // OPEN, INVESTIGATING, RESOLVED, DISMISSED
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([alertType])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("security_alerts")
+}
+
+model BlockedIP {
+  id            String   @id @default(uuid())
+  ipAddress     String   @unique
+  reason        String?
+  severity      String   @default("MEDIUM")
+  source        String?  // MANUAL, AUTOMATIC, REPORT
+  requestCount  Int      @default(0)
+  isActive      Boolean  @default(true)
+  expiresAt     DateTime?
+  blockedBy     String?
+  createdAt     DateTime @default(now())
+
+  @@index([ipAddress])
+  @@index([isActive])
+  @@map("blocked_ips")
+}
+
+model ErrorLog {
+  id            String   @id @default(uuid())
+  shopId        String?
+  userId        String?
+  errorType     String   // EXCEPTION, VALIDATION, DATABASE, TIMEOUT, EXTERNAL_API, UNKNOWN
+  severity      String   @default("ERROR") // WARN, ERROR, FATAL
+  message       String
+  stack         String?
+  source        String?  // module name or file path
+  endpoint      String?
+  method        String?
+  statusCode    Int?
+  requestBody   String?  // JSON
+  ipAddress     String?
+  userAgent     String?
+  metadata      String?  // JSON
+  resolved      Boolean  @default(false)
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  occurrenceCount Int    @default(1)
+  firstOccurrence DateTime @default(now())
+  lastOccurrence  DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([shopId])
+  @@index([errorType])
+  @@index([severity])
+  @@index([resolved])
+  @@index([createdAt])
+  @@map("error_logs")
+}
+
+model Integration {
+  id            String   @id @default(uuid())
+  shopId        String?
+  name          String
+  type          String   // WHATSAPP, EMAIL, SMS, PAYMENT, ERP, CRM, SHIPPING, ECOMMERCE, ACCOUNTING
+  provider      String   // TWILIO, SENDGRID, RAZORPAY, SHOPIFY, etc.
+  status        String   @default("ACTIVE") // ACTIVE, INACTIVE, ERROR, PENDING
+  config        String?  // JSON provider-specific config
+  credentials   String?  // JSON encrypted credentials
+  webhookUrl    String?
+  metadata      String?  // JSON
+  lastSyncAt    DateTime?
+  errorCount    Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  logs           IntegrationLog[]
+
+  @@index([shopId])
+  @@index([type])
+  @@index([status])
+  @@map("integrations")
+}
+
+model IntegrationLog {
+  id            String   @id @default(uuid())
+  integrationId String
+  direction     String   // INBOUND, OUTBOUND
+  eventType     String?  // specific event that triggered
+  requestUrl    String?
+  requestBody   String?
+  responseStatus Int?
+  responseBody  String?
+  success       Boolean  @default(true)
+  error         String?
+  latencyMs     Int?
+  createdAt     DateTime @default(now())
+
+  integration   Integration @relation(fields: [integrationId], references: [id])
+
+  @@index([integrationId])
+  @@index([success])
+  @@index([createdAt])
+  @@map("integration_logs")
+}
+
+model Translation {
+  id            String   @id @default(uuid())
+  language      String   // en, hi, ta, te, bn, etc.
+  key           String   // e.g. "common.save", "invoice.title"
+  value         String
+  namespace     String?  // COMMON, INVOICE, PRODUCT, etc.
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([language, key])
+  @@index([language])
+  @@index([namespace])
+  @@map("translations")
+}
+
+model PerformanceMetric {
+  id            String   @id @default(uuid())
+  metricType    String   // CPU, MEMORY, DISK, NETWORK, API_RESPONSE, DB_QUERY, CACHE_HIT
+  name          String
+  value         Float
+  unit          String?  // %, ms, MB, GB, COUNT
+  source        String?  // server instance or service name
+  metadata      String?  // JSON
+  recordedAt    DateTime @default(now())
+
+  @@index([metricType])
+  @@index([name])
+  @@index([recordedAt])
+  @@map("performance_metrics")
+}
+
+model TenantUsage {
+  id            String   @id @default(uuid())
+  tenantId      String
+  period        String   // 2024-01, 2024-02, etc.
+  apiCalls      Int      @default(0)
+  storageBytes  Float    @default(0)
+  activeUsers   Int      @default(0)
+  activeShops   Int      @default(0)
+  transactions  Int      @default(0)
+  revenue       Float    @default(0)
+  backups       Int      @default(0)
+  bandwidthBytes Float   @default(0)
+  metadata      String?  // JSON
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, period])
+  @@index([tenantId])
+  @@map("tenant_usage")
+}
+
+model DataRetention {
+  id            String   @id @default(uuid())
+  tenantId      String?
+  dataType      String   // AUDIT_LOGS, API_LOGS, ANALYTICS, SESSIONS, NOTIFICATIONS, ERROR_LOGS
+  retentionDays Int      @default(90)
+  action        String   @default("DELETE") // DELETE, ANONYMIZE, ARCHIVE
+  isActive      Boolean  @default(true)
+  lastRunAt     DateTime?
+  deletedCount  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([dataType])
+  @@map("data_retention")
+}
+
+model AuditTrail {
+  id            String   @id @default(uuid())
+  tenantId      String?
+  shopId        String?
+  userId        String?
+  action        String   // CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, EXPORT, IMPORT
+  resource      String   // entity name like "customer", "invoice", etc.
+  resourceId    String?
+  changes       String?  // JSON { before: {...}, after: {...} }
+  ipAddress     String?
+  userAgent     String?
+  status        String   @default("SUCCESS") // SUCCESS, FAILURE
+  metadata      String?  // JSON
+  createdAt     DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([shopId])
+  @@index([userId])
+  @@index([resource])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_trails")
+}
