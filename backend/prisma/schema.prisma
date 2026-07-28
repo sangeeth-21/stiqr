@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -8,10 +8,285 @@ generator client {
 }
 
 model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  name           String?
+  phone          String?  @unique
+  password       String
+  role           String   @default("CUSTOMER")
+  status         String   @default("PENDING_VERIFICATION")
+  avatar         String?
+  emailVerified  Boolean  @default(false)
+  phoneVerified  Boolean  @default(false)
+  lastLoginAt    DateTime?
+  lastActiveAt   DateTime?
+  failedAttempts Int      @default(0)
+  lockedUntil    DateTime?
+  shopId         String?
+  shop           Shop?    @relation(fields: [shopId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  sessions           Session[]
+  otps               Otp[]
+  refreshTokens      RefreshToken[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  blacklistedTokens  TokenBlacklist[]
+  deviceTokens       DeviceToken[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token        String   @unique
+  ipAddress    String?
+  userAgent    String?
+  deviceInfo   String?
+  location     String?
+  isActive     Boolean  @default(true)
+  lastActivity DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model RefreshToken {
   id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  role      String   @default("USER")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  sessionId String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model TokenBlacklist {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("token_blacklist")
+}
+
+model Shop {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logo        String?
+  address     String?
+  phone       String?
+  email       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  users    User[]
+  settings Setting[]
+
+  @@map("shops")
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  shopId    String?
+  shop      Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  type      String   @default("string")
+  group     String   @default("general")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([shopId, key])
+  @@map("settings")
+}
+
+model Otp {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email       String?
+  phone       String?
+  code        String
+  type        String
+  purpose     String
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(5)
+  isUsed      Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([email])
+  @@index([phone])
+  @@map("otps")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  oldValues String?
+  newValues String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  data      String?
+  isRead    Boolean  @default(false)
+  sentAt    DateTime?
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  type      String
+  subject   String?
+  body      String
+  variables String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notification_templates")
+}
+
+model OtpBlacklist {
+  id        String   @id @default(uuid())
+  code      String
+  purpose   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("otp_blacklist")
+}
+
+model UploadedFile {
+  id           String   @id @default(uuid())
+  originalName String
+  fileName     String
+  mimeType     String
+  size         Int
+  path         String
+  url          String?
+  uploadedBy   String?
+  createdAt    DateTime @default(now())
+  deletedAt    DateTime?
+
+  @@map("uploaded_files")
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String
+  platform  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("device_tokens")
+}
+
+model ApiLog {
+  id           String   @id @default(uuid())
+  method       String
+  path         String
+  statusCode   Int
+  responseTime Int
+  ipAddress    String?
+  userAgent    String?
+  userId       String?
+  requestBody  String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([path])
+  @@map("api_logs")
 }
