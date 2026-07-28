@@ -42,3 +42,10 @@ test-results/
 # Misc
 *.tgz
 .cache/
+
+# Cloudflare
+.wrangler/
+public/
+
+# Docker
+.dockerignore
