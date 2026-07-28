@@ -15,6 +15,33 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { HealthModule } from './health/health.module';
 import { ShopsModule } from './shops/shops.module';
 import { SettingsModule } from './settings/settings.module';
+import { TenantsModule } from './tenants/tenants.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { BranchesModule } from './branches/branches.module';
+import { CustomersModule } from './customers/customers.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { EmployeesModule } from './employees/employees.module';
+import { CategoriesModule } from './categories/categories.module';
+import { BrandsModule } from './brands/brands.module';
+import { UnitsModule } from './units/units.module';
+import { ProductsModule } from './products/products.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { WarehousesModule } from './warehouses/warehouses.module';
+import { BarcodesModule } from './barcodes/barcodes.module';
+import { ImeiModule } from './imei/imei.module';
+import { PurchasesModule } from './purchases/purchases.module';
+import { SalesModule } from './sales/sales.module';
+import { PosModule } from './pos/pos.module';
+import { PaymentsModule } from './payments/payments.module';
+import { InvoicesModule } from './invoices/invoices.module';
+import { ExpensesModule } from './expenses/expenses.module';
+import { IncomeModule } from './income/income.module';
+import { AccountingModule } from './accounting/accounting.module';
+import { TaxModule } from './tax/tax.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
+import { ServiceRepairModule } from './service-repair/service-repair.module';
+import { WarrantyModule } from './warranty/warranty.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -34,6 +61,33 @@ import { SettingsModule } from './settings/settings.module';
     HealthModule,
     ShopsModule,
     SettingsModule,
+    TenantsModule,
+    SubscriptionsModule,
+    BranchesModule,
+    CustomersModule,
+    SuppliersModule,
+    EmployeesModule,
+    CategoriesModule,
+    BrandsModule,
+    UnitsModule,
+    ProductsModule,
+    InventoryModule,
+    WarehousesModule,
+    BarcodesModule,
+    ImeiModule,
+    PurchasesModule,
+    SalesModule,
+    PosModule,
+    PaymentsModule,
+    InvoicesModule,
+    ExpensesModule,
+    IncomeModule,
+    AccountingModule,
+    TaxModule,
+    LoyaltyModule,
+    ServiceRepairModule,
+    WarrantyModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

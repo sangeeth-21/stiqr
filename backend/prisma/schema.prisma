@@ -7,39 +7,43 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ─── Module 1: Core Auth ───────────────────────────────────────
+
 model User {
-  id             String   @id @default(uuid())
-  email          String   @unique
+  id             String    @id @default(uuid())
+  email          String    @unique
   name           String?
-  phone          String?  @unique
+  phone          String?   @unique
   password       String
-  role           String   @default("CUSTOMER")
-  status         String   @default("PENDING_VERIFICATION")
+  role           String    @default("CUSTOMER")
+  status         String    @default("PENDING_VERIFICATION")
   avatar         String?
-  emailVerified  Boolean  @default(false)
-  phoneVerified  Boolean  @default(false)
+  emailVerified  Boolean   @default(false)
+  phoneVerified  Boolean   @default(false)
   lastLoginAt    DateTime?
   lastActiveAt   DateTime?
-  failedAttempts Int      @default(0)
+  failedAttempts Int       @default(0)
   lockedUntil    DateTime?
   shopId         String?
-  shop           Shop?    @relation(fields: [shopId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  shop           Shop?     @relation(fields: [shopId], references: [id])
+  tenantId       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  sessions           Session[]
-  otps               Otp[]
-  refreshTokens      RefreshToken[]
-  auditLogs          AuditLog[]
-  notifications      Notification[]
-  blacklistedTokens  TokenBlacklist[]
-  deviceTokens       DeviceToken[]
+  sessions          Session[]
+  otps              Otp[]
+  refreshTokens     RefreshToken[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  blacklistedTokens TokenBlacklist[]
+  deviceTokens      DeviceToken[]
 
   @@index([email])
   @@index([phone])
   @@index([role])
   @@index([status])
+  @@index([shopId])
   @@map("users")
 }
 
@@ -121,28 +125,38 @@ model TokenBlacklist {
   createdAt DateTime @default(now())
 
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
   @@map("token_blacklist")
 }
 
 model Shop {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  description String?
-  logo        String?
-  address     String?
-  phone       String?
-  email       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  id              String    @id @default(uuid())
+  name            String
+  slug            String    @unique
+  description     String?
+  logo            String?
+  address         String?
+  phone           String?
+  email           String?
+  gstNumber       String?
+  panNumber       String?
+  taxConfig       String?
+  invoiceTemplate String?
+  businessHours   String?
+  bankDetails     String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
-  users    User[]
-  settings Setting[]
+  users     User[]
+  settings  Setting[]
+  branches  Branch[]
+  customers Customer[]
+  suppliers Supplier[]
+  products  Product[]
 
   @@map("shops")
 }
@@ -203,17 +217,17 @@ model AuditLog {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      String
   title     String
   body      String
   data      String?
-  isRead    Boolean  @default(false)
+  isRead    Boolean   @default(false)
   sentAt    DateTime?
   error     String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@index([isRead])
@@ -245,7 +259,7 @@ model OtpBlacklist {
 }
 
 model UploadedFile {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   originalName String
   fileName     String
   mimeType     String
@@ -253,7 +267,7 @@ model UploadedFile {
   path         String
   url          String?
   uploadedBy   String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   deletedAt    DateTime?
 
   @@map("uploaded_files")
@@ -289,4 +303,890 @@ model ApiLog {
   @@index([userId])
   @@index([path])
   @@map("api_logs")
+}
+
+// ─── Module 2: Tenant & Subscription ───────────────────────────
+
+model Tenant {
+  id           String    @id @default(uuid())
+  name         String
+  slug         String    @unique
+  email        String?
+  phone        String?
+  address      String?
+  logo         String?
+  isActive     Boolean   @default(true)
+  settings     String?
+  storageLimit Int       @default(1073741824)
+  storageUsed  Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  subscriptions Subscription[]
+
+  @@map("tenants")
+}
+
+model Subscription {
+  id             String    @id @default(uuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan           String
+  status         String    @default("ACTIVE")
+  startDate      DateTime
+  endDate        DateTime?
+  autoRenew      Boolean   @default(false)
+  maxUsers       Int       @default(5)
+  maxShops       Int       @default(1)
+  maxProducts    Int       @default(500)
+  monthlyPrice   Float     @default(0)
+  yearlyPrice    Float     @default(0)
+  paymentHistory String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@map("subscriptions")
+}
+
+// ─── Module 2: Branch ──────────────────────────────────────────
+
+model Branch {
+  id        String    @id @default(uuid())
+  shopId    String
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name      String
+  code      String?
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean   @default(true)
+  isDefault Boolean   @default(false)
+  managerId String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  sales     Sale[]
+  employees Employee[]
+
+  @@index([shopId])
+  @@map("branches")
+}
+
+// ─── Module 2: Customer ────────────────────────────────────────
+
+model Customer {
+  id                 String    @id @default(uuid())
+  shopId             String
+  shop               Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name               String
+  email              String?
+  phone              String?
+  address            String?
+  groupId            String?
+  walletBalance      Float     @default(0)
+  loyaltyPoints      Int       @default(0)
+  creditLimit        Float     @default(0)
+  outstandingBalance Float     @default(0)
+  notes              String?
+  kycVerified        Boolean   @default(false)
+  kycDocuments       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  sales               Sale[]
+  serviceRepairs      ServiceRepair[]
+  warranties          Warranty[]
+  loyaltyTransactions LoyaltyTransaction[]
+
+  @@index([shopId])
+  @@index([phone])
+  @@map("customers")
+}
+
+// ─── Module 2: Supplier ────────────────────────────────────────
+
+model Supplier {
+  id                 String    @id @default(uuid())
+  shopId             String
+  shop               Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name               String
+  email              String?
+  phone              String?
+  address            String?
+  contactPerson      String?
+  paymentTerms       String?
+  bankDetails        String?
+  outstandingBalance Float     @default(0)
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  purchases Purchase[]
+  products  Product[]
+
+  @@index([shopId])
+  @@map("suppliers")
+}
+
+// ─── Module 2: Employee ────────────────────────────────────────
+
+model Employee {
+  id          String    @id @default(uuid())
+  userId      String?
+  shopId      String
+  branchId    String?
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+  name        String
+  email       String?
+  phone       String?
+  designation String?
+  salary      Float?
+  shiftStart  String?
+  shiftEnd    String?
+  joinDate    DateTime?
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  serviceRepairs ServiceRepair[]
+  attendance     Attendance[]
+  leaves         Leave[]
+
+  @@index([shopId])
+  @@index([branchId])
+  @@map("employees")
+}
+
+model Attendance {
+  id         String    @id @default(uuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     String    @default("PRESENT")
+  notes      String?
+  createdAt  DateTime  @default(now())
+
+  @@index([employeeId])
+  @@index([date])
+  @@map("attendance")
+}
+
+model Leave {
+  id         String   @id @default(uuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type       String
+  startDate  DateTime
+  endDate    DateTime
+  status     String   @default("PENDING")
+  notes      String?
+  approvedBy String?
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId])
+  @@map("leaves")
+}
+
+// ─── Module 2: Product Catalog ─────────────────────────────────
+
+model Category {
+  id        String   @id @default(uuid())
+  shopId    String?
+  name      String
+  slug      String
+  parentId  String?
+  icon      String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Brand {
+  id          String   @id @default(uuid())
+  shopId      String?
+  name        String
+  slug        String
+  logo        String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@unique([shopId, slug])
+  @@index([shopId])
+  @@map("brands")
+}
+
+model Unit {
+  id        String   @id @default(uuid())
+  shopId    String?
+  name      String
+  symbol    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@unique([shopId, symbol])
+  @@index([shopId])
+  @@map("units")
+}
+
+model Product {
+  id             String    @id @default(uuid())
+  shopId         String
+  shop           Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String
+  description    String?
+  sku            String?
+  barcode        String?
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id])
+  brandId        String?
+  brand          Brand?    @relation(fields: [brandId], references: [id])
+  unitId         String?
+  unit           Unit?     @relation(fields: [unitId], references: [id])
+  supplierId     String?
+  supplier       Supplier? @relation(fields: [supplierId], references: [id])
+  purchasePrice  Float     @default(0)
+  sellingPrice   Float     @default(0)
+  compareAtPrice Float?
+  taxRate        Float     @default(0)
+  taxType        String    @default("GST")
+  hsnCode        String?
+  images         String?
+  status         String    @default("ACTIVE")
+  isFeatured     Boolean   @default(false)
+  minStock       Int       @default(0)
+  maxStock       Int?
+  warranty       Int?
+  hasVariants    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  variants       ProductVariant[]
+  productImages  ProductImage[]
+  stock          Stock[]
+  stockMovements StockMovement[]
+  purchaseItems  PurchaseItem[]
+  saleItems      SaleItem[]
+  barcodes       Barcode[]
+  imeiRecords    ImeiRecord[]
+  warranties     Warranty[]
+
+  @@index([shopId])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([sku])
+  @@index([barcode])
+  @@map("products")
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String
+  sku        String?
+  barcode    String?
+  price      Float    @default(0)
+  costPrice  Float?
+  stockQty   Int      @default(0)
+  attributes String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  stocks         Stock[]
+  stockMovements StockMovement[]
+  purchaseItems  PurchaseItem[]
+  saleItems      SaleItem[]
+  barcodes       Barcode[]
+  imeiRecords    ImeiRecord[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+// ─── Module 2: Inventory & Warehouse ───────────────────────────
+
+model Warehouse {
+  id        String   @id @default(uuid())
+  shopId    String
+  name      String
+  address   String?
+  managerId String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stock          Stock[]
+  stockMovements StockMovement[]
+
+  @@index([shopId])
+  @@map("warehouses")
+}
+
+model Stock {
+  id          String          @id @default(uuid())
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  warehouseId String?
+  warehouse   Warehouse?      @relation(fields: [warehouseId], references: [id])
+  quantity    Int             @default(0)
+  reserved    Int             @default(0)
+  damaged     Int             @default(0)
+  batch       String?
+  expiryDate  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([productId, variantId, warehouseId, batch])
+  @@index([productId])
+  @@index([warehouseId])
+  @@map("stock")
+}
+
+model StockMovement {
+  id          String          @id @default(uuid())
+  productId   String
+  product     Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  warehouseId String?
+  warehouse   Warehouse?      @relation(fields: [warehouseId], references: [id])
+  type        String
+  quantity    Int
+  reference   String?
+  notes       String?
+  createdBy   String?
+  createdAt   DateTime        @default(now())
+
+  @@index([productId])
+  @@index([warehouseId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+// ─── Module 2: Barcode & IMEI ──────────────────────────────────
+
+model Barcode {
+  id        String          @id @default(uuid())
+  productId String
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  code      String          @unique
+  type      String          @default("EAN13")
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+
+  @@index([productId])
+  @@index([code])
+  @@map("barcodes")
+}
+
+model ImeiRecord {
+  id             String          @id @default(uuid())
+  productId      String
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId      String?
+  variant        ProductVariant? @relation(fields: [variantId], references: [id])
+  imei           String          @unique
+  serialNumber   String?
+  status         String          @default("IN_STOCK")
+  warrantyExpiry DateTime?
+  soldAt         DateTime?
+  soldTo         String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  serviceRepairs ServiceRepair[]
+
+  @@index([productId])
+  @@index([imei])
+  @@index([status])
+  @@map("imei_records")
+}
+
+// ─── Module 2: Purchase ────────────────────────────────────────
+
+model Purchase {
+  id            String    @id @default(uuid())
+  shopId        String
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  warehouseId   String?
+  invoiceNumber String
+  date          DateTime  @default(now())
+  subtotal      Float     @default(0)
+  taxAmount     Float     @default(0)
+  discount      Float     @default(0)
+  total         Float     @default(0)
+  paidAmount    Float     @default(0)
+  status        String    @default("PENDING")
+  paymentStatus String    @default("UNPAID")
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  items PurchaseItem[]
+
+  @@index([shopId])
+  @@index([supplierId])
+  @@index([invoiceNumber])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String          @id @default(uuid())
+  purchaseId String
+  purchase   Purchase        @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product         @relation(fields: [productId], references: [id])
+  variantId  String?
+  variant    ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  taxRate    Float           @default(0)
+  taxAmount  Float           @default(0)
+  total      Float           @default(0)
+  received   Int             @default(0)
+  batch      String?
+  expiryDate DateTime?
+  createdAt  DateTime        @default(now())
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_items")
+}
+
+// ─── Module 2: Sales & POS ─────────────────────────────────────
+
+model Sale {
+  id            String    @id @default(uuid())
+  shopId        String
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  branchId      String?
+  branch        Branch?   @relation(fields: [branchId], references: [id])
+  invoiceNumber String
+  date          DateTime  @default(now())
+  subtotal      Float     @default(0)
+  taxAmount     Float     @default(0)
+  discount      Float     @default(0)
+  couponId      String?
+  total         Float     @default(0)
+  paidAmount    Float     @default(0)
+  dueAmount     Float     @default(0)
+  paymentMethod String    @default("CASH")
+  status        String    @default("COMPLETED")
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  items    SaleItem[]
+  payments Payment[]
+
+  @@index([shopId])
+  @@index([customerId])
+  @@index([invoiceNumber])
+  @@index([date])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String          @id @default(uuid())
+  saleId    String
+  sale      Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product         @relation(fields: [productId], references: [id])
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity  Int
+  unitPrice Float
+  discount  Float           @default(0)
+  taxRate   Float           @default(0)
+  taxAmount Float           @default(0)
+  total     Float           @default(0)
+  imeiIds   String?
+  createdAt DateTime        @default(now())
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model PosSession {
+  id             String    @id @default(uuid())
+  shopId         String
+  branchId       String?
+  cashierId      String?
+  openingBalance Float     @default(0)
+  closingBalance Float?
+  totalSales     Float     @default(0)
+  totalReturns   Float     @default(0)
+  status         String    @default("OPEN")
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([shopId])
+  @@map("pos_sessions")
+}
+
+// ─── Module 2: Payment ─────────────────────────────────────────
+
+model Payment {
+  id          String   @id @default(uuid())
+  shopId      String
+  entityType  String
+  entityId    String
+  saleId      String?
+  sale        Sale?    @relation(fields: [saleId], references: [id])
+  method      String
+  amount      Float
+  reference   String?
+  notes       String?
+  processedAt DateTime @default(now())
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  @@index([shopId])
+  @@index([entityType, entityId])
+  @@index([saleId])
+  @@map("payments")
+}
+
+// ─── Module 2: Invoice ─────────────────────────────────────────
+
+model Invoice {
+  id            String    @id @default(uuid())
+  shopId        String
+  entityType    String
+  entityId      String
+  invoiceNumber String
+  date          DateTime  @default(now())
+  dueDate       DateTime?
+  subtotal      Float     @default(0)
+  taxAmount     Float     @default(0)
+  discount      Float     @default(0)
+  total         Float     @default(0)
+  paidAmount    Float     @default(0)
+  status        String    @default("DRAFT")
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([shopId])
+  @@index([invoiceNumber])
+  @@index([entityType, entityId])
+  @@map("invoices")
+}
+
+// ─── Module 2: Expense & Income ────────────────────────────────
+
+model Expense {
+  id            String   @id @default(uuid())
+  shopId        String
+  branchId      String?
+  category      String
+  description   String
+  amount        Float
+  date          DateTime @default(now())
+  paymentMethod String   @default("CASH")
+  reference     String?
+  receipt       String?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([category])
+  @@index([date])
+  @@map("expenses")
+}
+
+model Income {
+  id            String   @id @default(uuid())
+  shopId        String
+  branchId      String?
+  source        String
+  description   String
+  amount        Float
+  date          DateTime @default(now())
+  paymentMethod String   @default("CASH")
+  reference     String?
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([source])
+  @@index([date])
+  @@map("income")
+}
+
+// ─── Module 2: GST & Tax ───────────────────────────────────────
+
+model TaxRule {
+  id        String   @id @default(uuid())
+  shopId    String?
+  name      String
+  rate      Float
+  type      String   @default("GST")
+  hsnCode   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@map("tax_rules")
+}
+
+// ─── Module 2: Loyalty & Coupons ───────────────────────────────
+
+model LoyaltyProgram {
+  id             String   @id @default(uuid())
+  shopId         String
+  name           String
+  pointsPerRupee Float    @default(1)
+  minPurchase    Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([shopId])
+  @@map("loyalty_programs")
+}
+
+model LoyaltyTransaction {
+  id         String   @id @default(uuid())
+  shopId     String
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  type       String
+  points     Int
+  reference  String?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([shopId])
+  @@index([customerId])
+  @@map("loyalty_transactions")
+}
+
+model Coupon {
+  id          String    @id @default(uuid())
+  shopId      String
+  code        String
+  type        String
+  value       Float
+  minPurchase Float     @default(0)
+  maxDiscount Float?
+  usageLimit  Int?
+  usedCount   Int       @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  productIds  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([shopId, code])
+  @@index([shopId])
+  @@index([code])
+  @@map("coupons")
+}
+
+// ─── Module 2: Service & Repair ────────────────────────────────
+
+model ServiceRepair {
+  id               String    @id @default(uuid())
+  shopId           String
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  branchId         String?
+  technicianId     String?
+  technician       Employee? @relation(fields: [technicianId], references: [id])
+  ticketNumber     String
+  deviceType       String
+  deviceBrand      String?
+  deviceModel      String?
+  imei             String?
+  imeiRecordId     String?
+  issueDescription String
+  status           String    @default("RECEIVED")
+  estimatedCost    Float?
+  actualCost       Float?
+  sparePartsCost   Float     @default(0)
+  laborCost        Float     @default(0)
+  deliveryDate     DateTime?
+  notes            String?
+  createdBy        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  items      ServiceRepairItem[]
+  ImeiRecord ImeiRecord?         @relation(fields: [imeiRecordId], references: [id])
+
+  @@index([shopId])
+  @@index([customerId])
+  @@index([ticketNumber])
+  @@index([status])
+  @@map("service_repairs")
+}
+
+model ServiceRepairItem {
+  id              String        @id @default(uuid())
+  serviceRepairId String
+  serviceRepair   ServiceRepair @relation(fields: [serviceRepairId], references: [id], onDelete: Cascade)
+  productId       String?
+  productName     String
+  quantity        Int           @default(1)
+  price           Float         @default(0)
+  createdAt       DateTime      @default(now())
+
+  @@index([serviceRepairId])
+  @@map("service_repair_items")
+}
+
+// ─── Module 2: Warranty ────────────────────────────────────────
+
+model Warranty {
+  id         String    @id @default(uuid())
+  shopId     String
+  productId  String?
+  product    Product?  @relation(fields: [productId], references: [id])
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  saleId     String?
+  imei       String?
+  type       String    @default("PRODUCT")
+  startDate  DateTime
+  endDate    DateTime
+  terms      String?
+  status     String    @default("ACTIVE")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([shopId])
+  @@index([productId])
+  @@index([customerId])
+  @@index([imei])
+  @@index([status])
+  @@map("warranties")
+}
+
+// ─── Module 2: Accounting ──────────────────────────────────────
+
+model Ledger {
+  id          String   @id @default(uuid())
+  shopId      String
+  entityType  String?
+  entityId    String?
+  type        String
+  description String
+  debit       Float    @default(0)
+  credit      Float    @default(0)
+  balance     Float    @default(0)
+  date        DateTime @default(now())
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  journalLines JournalLine[]
+
+  @@index([shopId])
+  @@index([entityType, entityId])
+  @@index([date])
+  @@map("ledgers")
+}
+
+model Journal {
+  id          String   @id @default(uuid())
+  shopId      String
+  entryDate   DateTime
+  description String
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  lines JournalLine[]
+
+  @@index([shopId])
+  @@index([entryDate])
+  @@map("journals")
+}
+
+model JournalLine {
+  id          String   @id @default(uuid())
+  journalId   String
+  journal     Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  ledgerId    String?
+  ledger      Ledger?  @relation(fields: [ledgerId], references: [id])
+  debit       Float    @default(0)
+  credit      Float    @default(0)
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@index([journalId])
+  @@index([ledgerId])
+  @@map("journal_lines")
+}
+
+// ─── Module 2: Reports ─────────────────────────────────────────
+
+model Report {
+  id          String   @id @default(uuid())
+  shopId      String
+  type        String
+  parameters  String?
+  data        String?
+  generatedBy String?
+  generatedAt DateTime @default(now())
+
+  @@index([shopId])
+  @@index([type])
+  @@index([generatedAt])
+  @@map("reports")
 }
