@@ -14,6 +14,12 @@ import { financeRoutes } from './cf/routes/module2/m2-finance';
 import { reportsRoutes } from './cf/routes/module2/m2-reports';
 import { servicesRoutes } from './cf/routes/module3/m3-services';
 import { serviceReportsRoutes } from './cf/routes/module3/m3-reports';
+import { m4DashboardReportsRoutes } from './cf/routes/module4/m4-dashboard-reports';
+import { m4NotificationsSubscriptionsRoutes } from './cf/routes/module4/m4-notifications-subscriptions';
+import { m4BranchesFilesBackupRoutes } from './cf/routes/module4/m4-branches-files-backup';
+import { m4SupportSettingsApiKeysWebhooksRoutes } from './cf/routes/module4/m4-support-settings-apikeys-webhooks';
+import { m4AiHealthPlatformIntegrationsRoutes } from './cf/routes/module4/m4-ai-health-platform-integrations';
+import { m4SchedulerImportExportLicenseRoutes } from './cf/routes/module4/m4-scheduler-import-export-license';
 
 type Bindings = { DB: D1Database; JWT_SECRET: string };
 type Variables = { userId: string; userRole: string; userEmail: string; shopId: string; tenantId: string };
@@ -28,7 +34,7 @@ app.get('/', (c) => c.json({
   version: '2.0.0-cloudflare',
   status: 'online',
   platform: 'cloudflare-workers',
-    modules: ['auth', 'users', 'roles', 'permissions', 'shops', 'staff', 'subscriptions', 'admin', 'notifications', 'audit', 'settings', 'health', 'products', 'categories', 'brands', 'variants', 'inventory', 'barcode', 'imei', 'customers', 'suppliers', 'purchases', 'sales', 'pos', 'payments', 'expenses', 'income', 'coupons', 'warranty', 'dashboard', 'reports', 'services', 'job-cards', 'device-checkin', 'technicians', 'repair', 'service-parts', 'estimates', 'approvals', 'service-invoices', 'communications', 'deliveries', 'service-payments', 'service-timeline', 'tracking', 'service-dashboard', 'service-reports'],
+    modules: ['auth', 'users', 'roles', 'permissions', 'shops', 'staff', 'subscriptions', 'admin', 'notifications', 'audit', 'settings', 'health', 'products', 'categories', 'brands', 'variants', 'inventory', 'barcode', 'imei', 'customers', 'suppliers', 'purchases', 'sales', 'pos', 'payments', 'expenses', 'income', 'coupons', 'warranty', 'dashboard', 'reports', 'services', 'job-cards', 'device-checkin', 'technicians', 'repair', 'service-parts', 'estimates', 'approvals', 'service-invoices', 'communications', 'deliveries', 'service-payments', 'service-timeline', 'tracking', 'service-dashboard', 'service-reports', 'dashboard-analytics', 'reports-advanced', 'notifications', 'subscriptions', 'branches', 'backup', 'files', 'support', 'settings-advanced', 'api-keys', 'webhooks', 'ai', 'health', 'platform-admin', 'integrations', 'scheduler', 'import-export', 'license'],
   message: 'Hii! Welcome to StiQR Backend API',
 }));
 
@@ -91,6 +97,12 @@ financeRoutes(secure);
 reportsRoutes(secure);
 servicesRoutes(secure);
 serviceReportsRoutes(secure);
+m4DashboardReportsRoutes(secure);
+m4NotificationsSubscriptionsRoutes(secure);
+m4BranchesFilesBackupRoutes(secure);
+m4SupportSettingsApiKeysWebhooksRoutes(secure);
+m4AiHealthPlatformIntegrationsRoutes(secure);
+m4SchedulerImportExportLicenseRoutes(secure);
 
 app.route('/', secure);
 
