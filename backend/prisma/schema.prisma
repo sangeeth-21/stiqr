@@ -147,6 +147,7 @@ model Shop {
   taxConfig       String?
   invoiceTemplate String?
   businessHours   String?
+  printerConfig   String?
   bankDetails     String?
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())

@@ -26,7 +26,7 @@ export function staffRoutes(app: any) {
       const hashed = await hashPassword(password);
       await c.env.DB.batch([
         c.env.DB.prepare('INSERT INTO users (id, email, name, phone, password, role, status, shopId, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(userId, email, name, phone || null, hashed, role || 'STAFF', 'ACTIVE', c.var.shopId, now, now),
-        c.env.DB.prepare('INSERT INTO employees (id, userId, shopId, name, email, phone, designation, salary, status, createdAt) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(empId, userId, c.var.shopId, name, email, phone || null, designation || null, salary || null, 'ACTIVE', now),
+        c.env.DB.prepare('INSERT INTO employees (id, userId, shopId, name, email, phone, designation, salary, status, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(empId, userId, c.var.shopId, name, email, phone || null, designation || null, salary || null, 'ACTIVE', now, now),
       ]);
       return c.json({ data: { id: userId, email, name, role: role || 'STAFF' } }, 201);
     } catch (err: any) { return c.json({ error: err.message }, 500); }

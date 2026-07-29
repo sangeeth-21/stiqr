@@ -279,9 +279,36 @@ export function coreRoutes(app: any) {
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
-  // Health
-  app.get('/api/health/database', async (c) => {
-    try { await c.env.DB.prepare('SELECT 1').all(); return c.json({ status: 'ok', database: 'connected' }); }
-    catch (err: any) { return c.json({ status: 'error', message: err.message }, 500); }
+  app.patch('/api/shop/business-hours', async (c) => {
+    try {
+      const body = await c.req.json();
+      await c.env.DB.prepare('UPDATE shops SET businessHours = ?, updatedAt = ? WHERE id = ?').bind(JSON.stringify(body), new Date().toISOString(), c.var.shopId).run();
+      return c.json({ message: 'Business hours updated' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  app.patch('/api/shop/tax', async (c) => {
+    try {
+      const body = await c.req.json();
+      await c.env.DB.prepare('UPDATE shops SET taxConfig = ?, updatedAt = ? WHERE id = ?').bind(JSON.stringify(body), new Date().toISOString(), c.var.shopId).run();
+      return c.json({ message: 'Tax config updated' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.patch('/api/shop/invoice', async (c) => {
+    try {
+      const body = await c.req.json();
+      await c.env.DB.prepare('UPDATE shops SET invoiceTemplate = ?, updatedAt = ? WHERE id = ?').bind(JSON.stringify(body), new Date().toISOString(), c.var.shopId).run();
+      return c.json({ message: 'Invoice template updated' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.patch('/api/shop/printer', async (c) => {
+    try {
+      const body = await c.req.json();
+      await c.env.DB.prepare('UPDATE shops SET printerConfig = ?, updatedAt = ? WHERE id = ?').bind(JSON.stringify(body), new Date().toISOString(), c.var.shopId).run();
+      return c.json({ message: 'Printer config updated' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
 }

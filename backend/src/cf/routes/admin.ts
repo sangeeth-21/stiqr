@@ -129,4 +129,28 @@ export function adminRoutes(app: any) {
     try { await c.env.DB.prepare('DELETE FROM subscription_plans WHERE id = ?').bind(c.req.param('id')).run(); return c.json({ message: 'Deleted' }); }
     catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  // Payments
+  app.get('/api/admin/payments', requireAdmin, async (c) => {
+    try {
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100);
+      const offset = parseInt(c.req.query('offset') || '0');
+      const search = c.req.query('search') || '';
+      let query = 'SELECT p.*, s.name as shopName FROM payments p LEFT JOIN shops s ON p.shopId = s.id';
+      const params: any[] = [];
+      if (search) { query += ' WHERE s.name LIKE ?'; params.push(`%${search}%`); }
+      query += ' ORDER BY p.createdAt DESC LIMIT ? OFFSET ?'; params.push(limit, offset);
+      const { results } = await c.env.DB.prepare(query).bind(...params).all();
+      const { results: countRes } = await c.env.DB.prepare(search ? 'SELECT COUNT(*) as total FROM payments p LEFT JOIN shops s ON p.shopId = s.id WHERE s.name LIKE ?' : 'SELECT COUNT(*) as total FROM payments').bind(...(search ? [`%${search}%`] : [])).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0 });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/admin/payments/:id', requireAdmin, async (c) => {
+    try {
+      const payment = await c.env.DB.prepare('SELECT p.*, s.name as shopName FROM payments p LEFT JOIN shops s ON p.shopId = s.id WHERE p.id = ?').bind(c.req.param('id')).first();
+      if (!payment) return c.json({ error: 'Not found' }, 404);
+      return c.json({ data: payment });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }

@@ -15,12 +15,14 @@ export function authRoutes(app: any) {
       const now = new Date().toISOString();
       const hashedPw = await hashPassword(password);
       const slug = shopName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const tenantId = crypto.randomUUID();
       await db.batch([
+        db.prepare(`INSERT INTO tenants (id, name, slug, email, phone, isActive, createdAt, updatedAt) VALUES (?,?,?,?,?,1,?,?)`).bind(tenantId, shopName, `${slug}-${tenantId.slice(0,8)}`, email, mobile, now, now),
         db.prepare(`INSERT INTO shops (id, name, slug, isActive, createdAt, updatedAt) VALUES (?,?,?,1,?,?)`).bind(shopId, shopName, `${slug}-${userId.slice(0,8)}`, now, now),
-        db.prepare(`INSERT INTO users (id, email, name, phone, password, role, status, shopId, emailVerified, phoneVerified, failedAttempts, createdAt, updatedAt) VALUES (?,?,?,?,?,'OWNER','ACTIVE',?,1,1,0,?,?)`).bind(userId, email, ownerName, mobile, hashedPw, shopId, now, now),
+        db.prepare(`INSERT INTO users (id, email, name, phone, password, role, status, shopId, tenantId, emailVerified, phoneVerified, failedAttempts, createdAt, updatedAt) VALUES (?,?,?,?,?,'OWNER','ACTIVE',?,?,1,1,0,?,?)`).bind(userId, email, ownerName, mobile, hashedPw, shopId, tenantId, now, now),
       ]);
-      const token = await jwtSign({ sub: userId, email, role: 'OWNER', shopId }, c.env.JWT_SECRET);
-      return c.json({ data: { id: userId, email, name: ownerName, role: 'OWNER', shopId, token } }, 201);
+      const token = await jwtSign({ sub: userId, email, role: 'OWNER', shopId, tenantId }, c.env.JWT_SECRET);
+      return c.json({ data: { id: userId, email, name: ownerName, role: 'OWNER', shopId, tenantId, token } }, 201);
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
@@ -45,10 +47,10 @@ export function authRoutes(app: any) {
         return c.json({ error: 'Invalid credentials' }, 401);
       }
       await db.prepare('UPDATE users SET failedAttempts = 0, lastLoginAt = ? WHERE id = ?').bind(new Date().toISOString(), user.id).run();
-      const token = await jwtSign({ sub: user.id, email: user.email, role: user.role, shopId: user.shopId || '' }, c.env.JWT_SECRET);
+      const token = await jwtSign({ sub: user.id, email: user.email, role: user.role, shopId: user.shopId || '', tenantId: user.tenantId || '' }, c.env.JWT_SECRET);
       const refreshToken = crypto.randomUUID();
       await db.prepare('INSERT INTO refresh_tokens (id, userId, token, expiresAt, createdAt) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(), user.id, refreshToken, new Date(Date.now() + 7*24*60*60*1000).toISOString(), new Date().toISOString()).run();
-      return c.json({ accessToken: token, refreshToken, expiresIn: 3600, user: { id: user.id, email: user.email, name: user.name, role: user.role, shopId: user.shopId } });
+      return c.json({ accessToken: token, refreshToken, expiresIn: 3600, user: { id: user.id, email: user.email, name: user.name, role: user.role, shopId: user.shopId, tenantId: user.tenantId } });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
@@ -62,7 +64,7 @@ export function authRoutes(app: any) {
       await db.prepare('DELETE FROM refresh_tokens WHERE id = ?').bind(stored.id).run();
       const user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(stored.userId).first() as any;
       if (!user) return c.json({ error: 'User not found' }, 404);
-      const token = await jwtSign({ sub: user.id, email: user.email, role: user.role, shopId: user.shopId || '' }, c.env.JWT_SECRET);
+      const token = await jwtSign({ sub: user.id, email: user.email, role: user.role, shopId: user.shopId || '', tenantId: user.tenantId || '' }, c.env.JWT_SECRET);
       const newRefresh = crypto.randomUUID();
       await db.prepare('INSERT INTO refresh_tokens (id, userId, token, expiresAt, createdAt) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(), user.id, newRefresh, new Date(Date.now() + 7*24*60*60*1000).toISOString(), new Date().toISOString()).run();
       return c.json({ accessToken: token, refreshToken: newRefresh, expiresIn: 3600 });
