@@ -18,8 +18,8 @@ echo "🏗️  Bundling with esbuild..."
 npx esbuild src/worker.ts \
   --bundle \
   --outfile=dist/worker.js \
-  --format=cjs \
-  --platform=node \
+  --format=esm \
+  --platform=browser \
   --target=es2022 \
   --conditions=worker \
   --main-fields=module,main \
@@ -35,7 +35,7 @@ npx esbuild src/worker.ts \
   --external:@nestjs/microservices \
   --external:class-transformer/storage \
   --sourcemap \
-  --minify=false \
+  --minify=true \
   --tree-shaking=true \
   --resolve-extensions=.ts,.js,.json
 

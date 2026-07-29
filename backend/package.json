@@ -8,7 +8,9 @@
     "dev": "nest start --watch",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "build:cf": "bash scripts/build-cloudflare.sh",
+    "deploy:cf": "bash scripts/deploy-cloudflare.sh"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.12",
