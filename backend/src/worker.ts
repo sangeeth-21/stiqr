@@ -12,6 +12,8 @@ import { crmRoutes } from './cf/routes/module2/m2-crm';
 import { transactionRoutes } from './cf/routes/module2/m2-transactions';
 import { financeRoutes } from './cf/routes/module2/m2-finance';
 import { reportsRoutes } from './cf/routes/module2/m2-reports';
+import { servicesRoutes } from './cf/routes/module3/m3-services';
+import { serviceReportsRoutes } from './cf/routes/module3/m3-reports';
 
 type Bindings = { DB: D1Database; JWT_SECRET: string };
 type Variables = { userId: string; userRole: string; userEmail: string; shopId: string; tenantId: string };
@@ -26,7 +28,7 @@ app.get('/', (c) => c.json({
   version: '2.0.0-cloudflare',
   status: 'online',
   platform: 'cloudflare-workers',
-  modules: ['auth', 'users', 'roles', 'permissions', 'shops', 'staff', 'subscriptions', 'admin', 'notifications', 'audit', 'settings', 'health', 'products', 'categories', 'brands', 'variants', 'inventory', 'barcode', 'imei', 'customers', 'suppliers', 'purchases', 'sales', 'pos', 'payments', 'expenses', 'income', 'coupons', 'warranty', 'dashboard', 'reports'],
+    modules: ['auth', 'users', 'roles', 'permissions', 'shops', 'staff', 'subscriptions', 'admin', 'notifications', 'audit', 'settings', 'health', 'products', 'categories', 'brands', 'variants', 'inventory', 'barcode', 'imei', 'customers', 'suppliers', 'purchases', 'sales', 'pos', 'payments', 'expenses', 'income', 'coupons', 'warranty', 'dashboard', 'reports', 'services', 'job-cards', 'device-checkin', 'technicians', 'repair', 'service-parts', 'estimates', 'approvals', 'service-invoices', 'communications', 'deliveries', 'service-payments', 'service-timeline', 'tracking', 'service-dashboard', 'service-reports'],
   message: 'Hii! Welcome to StiQR Backend API',
 }));
 
@@ -87,6 +89,8 @@ crmRoutes(secure);
 transactionRoutes(secure);
 financeRoutes(secure);
 reportsRoutes(secure);
+servicesRoutes(secure);
+serviceReportsRoutes(secure);
 
 app.route('/', secure);
 
