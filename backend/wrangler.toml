@@ -1,15 +1,45 @@
-name = "stiqr-backend"
-main = "dist/worker.js"
-compatibility_date = "2024-12-01"
+name = "stiqr-api"
+main = "src/index.ts"
+compatibility_date = "2024-07-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Environment variables (set via wrangler secret put or dashboard)
-[vars]
-NODE_ENV = "production"
-PORT = "4000"
+# =========================================================
+# D1 Database — Persistent SQLite storage
+# =========================================================
+# Create: npx wrangler d1 create stiqr-db
+# Then copy the database_id below
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "stiqr-db"
+# database_id = "your-database-id"
+# migrations_dir = "drizzle"
 
-# D1 Database binding
-[[d1_databases]]
-binding = "DB"
-database_name = "stiqr-db"
-database_id = "46f754dd-db5e-408e-9c2c-63613488accb"
+# =========================================================
+# KV Namespace — Session store & cache
+# =========================================================
+# Create: npx wrangler kv:namespace create "KV"
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-id"
+# preview_id = "your-preview-kv-id"
+
+# =========================================================
+# R2 Bucket — File/asset storage
+# =========================================================
+# Create: npx wrangler r2 bucket create stiqr-assets
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "stiqr-assets"
+
+# =========================================================
+# Environment variables (non-secret config)
+# =========================================================
+[vars]
+ENVIRONMENT = "development"
+
+# =========================================================
+# Secrets — use `wrangler secret put <name>` for:
+#   - JWT_SECRET
+#   - CLERK_SECRET_KEY
+#   - Any API keys
+# =========================================================
