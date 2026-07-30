@@ -397,4 +397,80 @@ export function catalogRoutes(app: any) {
       return c.json({ message: 'Deleted' });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  // ==================== UNITS ====================
+
+  app.post('/api/units', async (c) => {
+    try {
+      const { name, symbol } = await c.req.json();
+      if (!name || !symbol) return c.json({ error: 'name and symbol required' }, 400);
+      const id = crypto.randomUUID(); const now = new Date().toISOString();
+      await c.env.DB.prepare('INSERT INTO units (id, shopId, name, symbol, isActive, createdAt, updatedAt) VALUES (?,?,?,?,1,?,?)').bind(id, c.var.shopId, name, symbol, now, now).run();
+      return c.json({ data: { id, name, symbol } }, 201);
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/units', async (c) => {
+    try {
+      const search = c.req.query('search') || '';
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      let where = 'WHERE shopId = ? AND isActive = 1'; const params: any[] = [c.var.shopId];
+      if (search) { where += ' AND name LIKE ?'; params.push(`%${search}%`); }
+      const { results } = await c.env.DB.prepare(`SELECT * FROM units ${where} ORDER BY name ASC LIMIT ? OFFSET ?`).bind(...params, limit, offset).all();
+      const { results: countRes } = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM units ${where}`).bind(...params).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/units/:id', async (c) => {
+    try {
+      const unit = await c.env.DB.prepare('SELECT * FROM units WHERE id = ? AND shopId = ?').bind(c.req.param('id'), c.var.shopId).first();
+      if (!unit) return c.json({ error: 'Not found' }, 404);
+      return c.json({ data: unit });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.patch('/api/units/:id', async (c) => {
+    try {
+      const body = await c.req.json(); const allowed = ['name', 'symbol', 'isActive'];
+      const sets: string[] = []; const vals: any[] = [];
+      for (const k of allowed) { if (body[k] !== undefined) { sets.push(`${k} = ?`); vals.push(body[k]); } }
+      if (!sets.length) return c.json({ error: 'No valid fields' }, 400);
+      vals.push(new Date().toISOString(), c.req.param('id'), c.var.shopId);
+      await c.env.DB.prepare(`UPDATE units SET ${sets.join(', ')}, updatedAt = ? WHERE id = ? AND shopId = ?`).bind(...vals).run();
+      const updated = await c.env.DB.prepare('SELECT * FROM units WHERE id = ?').bind(c.req.param('id')).first();
+      return c.json({ data: updated });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.delete('/api/units/:id', async (c) => {
+    try {
+      await c.env.DB.prepare('UPDATE units SET isActive = 0, updatedAt = ? WHERE id = ? AND shopId = ?').bind(new Date().toISOString(), c.req.param('id'), c.var.shopId).run();
+      return c.json({ message: 'Deleted' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  // ==================== TAX RULES ====================
+
+  app.post('/api/tax-rules', async (c) => {
+    try {
+      const { name, rate, type, hsnCode } = await c.req.json();
+      if (!name || rate === undefined) return c.json({ error: 'name and rate required' }, 400);
+      const id = crypto.randomUUID(); const now = new Date().toISOString();
+      await c.env.DB.prepare('INSERT INTO tax_rules (id, shopId, name, rate, type, hsnCode, isActive, createdAt, updatedAt) VALUES (?,?,?,?,?,?,1,?,?)').bind(id, c.var.shopId, name, rate, type || 'GST', hsnCode || null, now, now).run();
+      return c.json({ data: { id, name, rate, type: type || 'GST', hsnCode: hsnCode || null } }, 201);
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/tax-rules', async (c) => {
+    try {
+      const search = c.req.query('search') || '';
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      let where = 'WHERE shopId = ? AND isActive = 1'; const params: any[] = [c.var.shopId];
+      if (search) { where += ' AND (name LIKE ? OR hsnCode LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+      const { results } = await c.env.DB.prepare(`SELECT * FROM tax_rules ${where} ORDER BY name ASC LIMIT ? OFFSET ?`).bind(...params, limit, offset).all();
+      const { results: countRes } = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM tax_rules ${where}`).bind(...params).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }

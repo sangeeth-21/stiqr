@@ -382,4 +382,54 @@ export function m4DashboardReportsRoutes(app: any) {
       });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  app.get('/api/dashboard/sales', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const today = new Date().toISOString().slice(0, 10);
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+      const [todaySales, monthSales, totalSales, todayCount, monthCount] = await Promise.all([
+        db.prepare("SELECT COALESCE(SUM(total),0) as t FROM sales WHERE shopId = ? AND status != 'CANCELLED' AND date = ?").bind(shopId, today).first(),
+        db.prepare("SELECT COALESCE(SUM(total),0) as t FROM sales WHERE shopId = ? AND status != 'CANCELLED' AND date >= ?").bind(shopId, monthStart).first(),
+        db.prepare("SELECT COALESCE(SUM(total),0) as t FROM sales WHERE shopId = ? AND status != 'CANCELLED'").bind(shopId).first(),
+        db.prepare("SELECT COUNT(*) as c FROM sales WHERE shopId = ? AND status != 'CANCELLED' AND date = ?").bind(shopId, today).first(),
+        db.prepare("SELECT COUNT(*) as c FROM sales WHERE shopId = ? AND status != 'CANCELLED' AND date >= ?").bind(shopId, monthStart).first(),
+      ]);
+      return c.json({ data: { todayRevenue: (todaySales as any)?.t || 0, monthRevenue: (monthSales as any)?.t || 0, totalRevenue: (totalSales as any)?.t || 0, todayOrders: (todayCount as any)?.c || 0, monthOrders: (monthCount as any)?.c || 0 } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/dashboard/inventory', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const [totalProducts, lowStock, outOfStock, totalValue] = await Promise.all([
+        db.prepare("SELECT COUNT(*) as c FROM products WHERE shopId = ? AND deletedAt IS NULL").bind(shopId).first(),
+        db.prepare("SELECT COUNT(*) as c FROM products p WHERE p.shopId = ? AND p.status = 'ACTIVE' AND (SELECT COALESCE(SUM(quantity),0) FROM stock WHERE productId = p.id) <= COALESCE(p.minStock, 5) AND (SELECT COALESCE(SUM(quantity),0) FROM stock WHERE productId = p.id) > 0").bind(shopId).first(),
+        db.prepare("SELECT COUNT(*) as c FROM products p WHERE p.shopId = ? AND p.status = 'ACTIVE' AND (SELECT COALESCE(SUM(quantity),0) FROM stock WHERE productId = p.id) <= 0").bind(shopId).first(),
+        db.prepare("SELECT COALESCE(SUM(p.costPrice * s.quantity),0) as t FROM products p JOIN stock s ON s.productId = p.id WHERE p.shopId = ? AND p.deletedAt IS NULL").bind(shopId).first(),
+      ]);
+      return c.json({ data: { totalProducts: (totalProducts as any)?.c || 0, lowStock: (lowStock as any)?.c || 0, outOfStock: (outOfStock as any)?.c || 0, totalValue: (totalValue as any)?.t || 0 } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/reports/inventory', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      const { results } = await db.prepare("SELECT p.id, p.name, p.sku, p.costPrice, p.sellingPrice, COALESCE(SUM(s.quantity),0) as stockQty, COALESCE(p.minStock,5) as minStock FROM products p LEFT JOIN stock s ON s.productId = p.id WHERE p.shopId = ? AND p.deletedAt IS NULL GROUP BY p.id ORDER BY stockQty ASC LIMIT ? OFFSET ?").bind(shopId, limit, offset).all();
+      const { results: countRes } = await db.prepare("SELECT COUNT(*) as total FROM products WHERE shopId = ? AND deletedAt IS NULL").bind(shopId).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/reports/customers', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      const { results } = await db.prepare("SELECT c.id, c.name, c.email, c.phone, c.totalPurchases, c.totalSpent, c.lastPurchaseDate, c.createdAt FROM customers c WHERE c.shopId = ? AND c.deletedAt IS NULL ORDER BY c.totalSpent DESC LIMIT ? OFFSET ?").bind(shopId, limit, offset).all();
+      const { results: countRes } = await db.prepare("SELECT COUNT(*) as total, COALESCE(SUM(totalSpent),0) as totalSpent, AVG(totalSpent) as avgSpent FROM customers WHERE shopId = ? AND deletedAt IS NULL").bind(shopId).all();
+      const summary = (countRes as any)?.[0] || {};
+      return c.json({ data: results, total: summary.total || 0, summary: { totalSpent: summary.totalSpent || 0, avgSpent: summary.avgSpent || 0 }, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }

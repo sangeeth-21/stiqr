@@ -67,6 +67,22 @@ export function m4NotificationsSubscriptionsRoutes(app: any) {
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
+  app.get('/api/notifications/unread-count', async (c) => {
+    try {
+      const db = c.env.DB; const userId = c.var.userId;
+      const result = await db.prepare("SELECT COUNT(*) as count FROM notifications WHERE userId = ? AND isRead = 0").bind(userId).first();
+      return c.json({ data: { unread: (result as any)?.count || 0 } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.post('/api/notifications/read-all', async (c) => {
+    try {
+      const db = c.env.DB; const userId = c.var.userId;
+      await db.prepare("UPDATE notifications SET isRead = 1 WHERE userId = ? AND isRead = 0").bind(userId).run();
+      return c.json({ message: 'All notifications marked as read' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
   app.get('/api/notifications/:id', async (c) => {
     try {
       const db = c.env.DB;
@@ -330,6 +346,29 @@ export function m4NotificationsSubscriptionsRoutes(app: any) {
       ).bind(shopId, current.plan).all();
 
       return c.json({ data: results || [] });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.post('/api/subscriptions/payment-method', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const { type, details } = await c.req.json();
+      if (!type || !details) return c.json({ error: 'type and details required' }, 400);
+      const id = crypto.randomUUID(); const now = new Date().toISOString();
+      await db.prepare("CREATE TABLE IF NOT EXISTS subscription_payment_methods (id TEXT PRIMARY KEY, shopId TEXT NOT NULL, type TEXT NOT NULL, details TEXT, isDefault INTEGER DEFAULT 1, createdAt TEXT, updatedAt TEXT)").run();
+      if (details.default) await db.prepare("UPDATE subscription_payment_methods SET isDefault = 0 WHERE shopId = ?").bind(shopId).run();
+      await db.prepare("INSERT INTO subscription_payment_methods (id, shopId, type, details, isDefault, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?)").bind(id, shopId, type, JSON.stringify(details), details.default ? 1 : 1, now, now).run();
+      return c.json({ data: { id, type, details } }, 201);
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/subscriptions/invoices/:id', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      await db.prepare("CREATE TABLE IF NOT EXISTS subscription_invoices (id TEXT PRIMARY KEY, shopId TEXT NOT NULL, planName TEXT, amount REAL, status TEXT, periodStart TEXT, periodEnd TEXT, paidAt TEXT, createdAt TEXT)").run();
+      const invoice = await db.prepare("SELECT * FROM subscription_invoices WHERE id = ? AND shopId = ?").bind(c.req.param('id'), shopId).first();
+      if (!invoice) return c.json({ error: 'Not found' }, 404);
+      return c.json({ data: invoice });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 }

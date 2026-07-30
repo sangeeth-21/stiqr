@@ -41,6 +41,16 @@ export function m4SupportSettingsApiKeysWebhooksRoutes(app: any) {
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
+  app.get('/api/support/categories', async (c) => {
+    try {
+      await ensureModule4Tables(c.env.DB);
+      const db = c.env.DB;
+      await db.prepare("CREATE TABLE IF NOT EXISTS support_categories (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, sortOrder INTEGER DEFAULT 0, createdAt TEXT)").run();
+      const { results } = await db.prepare("SELECT * FROM support_categories ORDER BY sortOrder ASC, name ASC").all();
+      return c.json({ data: results });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
   app.get('/api/support/:id', async (c) => {
     try {
       await ensureModule4Tables(c.env.DB);
@@ -312,4 +322,35 @@ export function m4SupportSettingsApiKeysWebhooksRoutes(app: any) {
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
+  app.post('/api/support/escalate', async (c) => {
+    try {
+      await ensureModule4Tables(c.env.DB);
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const { ticketId, reason, priority } = await c.req.json();
+      if (!ticketId || !reason) return c.json({ error: 'ticketId and reason required' }, 400);
+      const now = new Date().toISOString();
+      await db.prepare("UPDATE support_tickets SET priority = ?, status = 'ESCALATED', updatedAt = ? WHERE id = ? AND shopId = ?").bind(priority || 'HIGH', now, ticketId, shopId).run();
+      return c.json({ message: 'Escalated', data: { id: ticketId, priority: priority || 'HIGH', status: 'ESCALATED' } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/webhooks/events', async (c) => {
+    try {
+      const events = [
+        { key: 'order.created', label: 'Order Created', category: 'orders' },
+        { key: 'order.updated', label: 'Order Updated', category: 'orders' },
+        { key: 'order.cancelled', label: 'Order Cancelled', category: 'orders' },
+        { key: 'payment.received', label: 'Payment Received', category: 'payments' },
+        { key: 'payment.refunded', label: 'Payment Refunded', category: 'payments' },
+        { key: 'customer.created', label: 'Customer Created', category: 'customers' },
+        { key: 'customer.updated', label: 'Customer Updated', category: 'customers' },
+        { key: 'product.low_stock', label: 'Low Stock Alert', category: 'products' },
+        { key: 'service.created', label: 'Service Created', category: 'services' },
+        { key: 'service.status_change', label: 'Service Status Changed', category: 'services' },
+        { key: 'service.completed', label: 'Service Completed', category: 'services' },
+        { key: 'warranty.claimed', label: 'Warranty Claimed', category: 'warranty' },
+      ];
+      return c.json({ data: events });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }

@@ -405,4 +405,45 @@ export function m4SchedulerImportExportLicenseRoutes(app: any) {
       return c.json({ message: `Deleted ${total} activity log(s) older than ${days} days` });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  app.post('/api/license/activate', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const { licenseKey, plan } = await c.req.json();
+      if (!licenseKey || !plan) return c.json({ error: 'licenseKey and plan required' }, 400);
+      const now = new Date().toISOString();
+      await ensureLicenseTables(db);
+      const expiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
+      const id = crypto.randomUUID();
+      await db.prepare("INSERT INTO licenses (id, shopId, licenseKey, plan, status, activatedAt, expiresAt, createdAt) VALUES (?,?,?,?,'ACTIVE',?,?,?)").bind(id, shopId, licenseKey, plan, now, expiresAt, now).run();
+      return c.json({ data: { id, licenseKey, plan, status: 'ACTIVE', activatedAt: now, expiresAt } }, 201);
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.post('/api/license/validate', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const { licenseKey } = await c.req.json();
+      if (!licenseKey) return c.json({ error: 'licenseKey required' }, 400);
+      await ensureLicenseTables(db);
+      const license = await db.prepare("SELECT * FROM licenses WHERE licenseKey = ? AND shopId = ? ORDER BY createdAt DESC LIMIT 1").bind(licenseKey, shopId).first() as any;
+      if (!license) return c.json({ valid: false, message: 'License key not found' });
+      const now = new Date().toISOString();
+      const expired = license.expiresAt && license.expiresAt < now;
+      if (expired || license.status !== 'ACTIVE') return c.json({ valid: false, message: expired ? 'License expired' : 'License not active', status: license.status });
+      return c.json({ valid: true, data: { plan: license.plan, status: license.status, activatedAt: license.activatedAt, expiresAt: license.expiresAt } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/import/templates', async (c) => {
+    try {
+      const templates = [
+        { type: 'products', label: 'Products Import', fields: ['name', 'sku', 'category', 'brand', 'costPrice', 'sellingPrice', 'quantity', 'minStock', 'description'], sample: 'https://stiqr-backend.ksangeeth76.workers.dev/templates/products.csv' },
+        { type: 'customers', label: 'Customers Import', fields: ['name', 'email', 'phone', 'address', 'city', 'state', 'gstin'], sample: 'https://stiqr-backend.ksangeeth76.workers.dev/templates/customers.csv' },
+        { type: 'suppliers', label: 'Suppliers Import', fields: ['name', 'contactPerson', 'email', 'phone', 'address', 'gstin'], sample: 'https://stiqr-backend.ksangeeth76.workers.dev/templates/suppliers.csv' },
+        { type: 'imei', label: 'IMEI Import', fields: ['imei', 'productSku', 'productName', 'status', 'location'], sample: 'https://stiqr-backend.ksangeeth76.workers.dev/templates/imei.csv' },
+      ];
+      return c.json({ data: templates });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }

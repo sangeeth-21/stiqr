@@ -231,4 +231,59 @@ export function m4BranchesFilesBackupRoutes(app: any) {
       return c.json({ message: 'Deleted' });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  app.get('/api/files/download/:id', async (c) => {
+    try {
+      const db = c.env.DB;
+      const file = await db.prepare("SELECT * FROM uploaded_files WHERE id = ?").bind(c.req.param('id')).first();
+      if (!file) return c.json({ error: 'Not found' }, 404);
+      return c.json({ data: { ...(file as any), downloadUrl: `https://stiqr-backend.ksangeeth76.workers.dev/api/upload/${file.id}` } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.patch('/api/branches/:id/settings', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const body = await c.req.json();
+      const allowed = ['name', 'address', 'phone', 'email', 'manager', 'status', 'openingTime', 'closingTime'];
+      const sets: string[] = []; const vals: any[] = [];
+      for (const k of allowed) { if (body[k] !== undefined) { sets.push(`${k} = ?`); vals.push(body[k]); } }
+      if (!sets.length) return c.json({ error: 'No valid fields' }, 400);
+      vals.push(new Date().toISOString(), c.req.param('id'), shopId);
+      await db.prepare(`UPDATE branches SET ${sets.join(', ')}, updatedAt = ? WHERE id = ? AND shopId = ?`).bind(...vals).run();
+      return c.json({ message: 'Updated' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/backup/settings', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      await db.prepare("CREATE TABLE IF NOT EXISTS backup_settings (id TEXT PRIMARY KEY, shopId TEXT NOT NULL, frequency TEXT DEFAULT 'DAILY', retentionDays INTEGER DEFAULT 30, includeFiles INTEGER DEFAULT 1, includeDatabase INTEGER DEFAULT 1, time TEXT DEFAULT '02:00', createdAt TEXT, updatedAt TEXT)").run();
+      let settings = await db.prepare("SELECT * FROM backup_settings WHERE shopId = ? ORDER BY createdAt DESC LIMIT 1").bind(shopId).first();
+      if (!settings) {
+        const id = crypto.randomUUID(); const now = new Date().toISOString();
+        await db.prepare("INSERT INTO backup_settings (id, shopId, frequency, retentionDays, includeFiles, includeDatabase, time, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?)").bind(id, shopId, 'DAILY', 30, 1, 1, '02:00', now, now).run();
+        settings = await db.prepare("SELECT * FROM backup_settings WHERE id = ?").bind(id).first();
+      }
+      return c.json({ data: settings });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.post('/api/backup/settings', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const { frequency, retentionDays, includeFiles, includeDatabase, time } = await c.req.json();
+      const now = new Date().toISOString();
+      await db.prepare("CREATE TABLE IF NOT EXISTS backup_settings (id TEXT PRIMARY KEY, shopId TEXT NOT NULL, frequency TEXT DEFAULT 'DAILY', retentionDays INTEGER DEFAULT 30, includeFiles INTEGER DEFAULT 1, includeDatabase INTEGER DEFAULT 1, time TEXT DEFAULT '02:00', createdAt TEXT, updatedAt TEXT)").run();
+      const existing = await db.prepare("SELECT id FROM backup_settings WHERE shopId = ? ORDER BY createdAt DESC LIMIT 1").bind(shopId).first() as any;
+      if (existing) {
+        await db.prepare("UPDATE backup_settings SET frequency = ?, retentionDays = ?, includeFiles = ?, includeDatabase = ?, time = ?, updatedAt = ? WHERE id = ?").bind(frequency || 'DAILY', retentionDays ?? 30, includeFiles ?? 1, includeDatabase ?? 1, time || '02:00', now, existing.id).run();
+      } else {
+        const id = crypto.randomUUID();
+        await db.prepare("INSERT INTO backup_settings (id, shopId, frequency, retentionDays, includeFiles, includeDatabase, time, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?)").bind(id, shopId, frequency || 'DAILY', retentionDays ?? 30, includeFiles ?? 1, includeDatabase ?? 1, time || '02:00', now, now).run();
+      }
+      const settings = await db.prepare("SELECT * FROM backup_settings WHERE shopId = ? ORDER BY createdAt DESC LIMIT 1").bind(shopId).first();
+      return c.json({ data: settings });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }

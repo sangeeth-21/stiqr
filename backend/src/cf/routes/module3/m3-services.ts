@@ -120,6 +120,31 @@ export function servicesRoutes(app: any) {
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
+  app.get('/api/services/dashboard', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const now = new Date().toISOString().slice(0, 10);
+      const [total, today, pending, inProgress, avgTime] = await Promise.all([
+        db.prepare('SELECT COUNT(*) as c FROM service_repairs WHERE shopId = ?').bind(shopId).first(),
+        db.prepare("SELECT COUNT(*) as c FROM service_repairs WHERE shopId = ? AND date(createdAt) = ?").bind(shopId, now).first(),
+        db.prepare("SELECT COUNT(*) as c FROM service_repairs WHERE shopId = ? AND status IN ('RECEIVED','PENDING','AWAITING_APPROVAL')").bind(shopId).first(),
+        db.prepare("SELECT COUNT(*) as c FROM service_repairs WHERE shopId = ? AND status = 'IN_PROGRESS'").bind(shopId).first(),
+        db.prepare("SELECT AVG(julianday(updatedAt) - julianday(createdAt)) as avg FROM service_repairs WHERE shopId = ? AND status IN ('COMPLETED','DELIVERED')").bind(shopId).first(),
+      ]);
+      return c.json({ data: { total: (total as any)?.c || 0, today: (today as any)?.c || 0, pending: (pending as any)?.c || 0, inProgress: (inProgress as any)?.c || 0, avgRepairDays: (avgTime as any)?.avg || 0 } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.post('/api/services/print', async (c) => {
+    try {
+      const { id, type } = await c.req.json();
+      if (!id) return c.json({ error: 'id required' }, 400);
+      const ticket = await c.env.DB.prepare("SELECT * FROM service_repairs WHERE id = ? AND shopId = ?").bind(id, c.var.shopId).first();
+      if (!ticket) return c.json({ error: 'Not found' }, 404);
+      return c.json({ data: { id, type: type || 'SERVICE_TICKET', printUrl: `https://stiqr-backend.ksangeeth76.workers.dev/print/service/${id}`, ticket } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
   app.get('/api/services/:id', async (c) => {
     try {
       const db = c.env.DB; const shopId = c.var.shopId;
@@ -345,6 +370,20 @@ export function servicesRoutes(app: any) {
       const { results } = await db.prepare("SELECT * FROM employees WHERE shopId = ? AND (designation LIKE '%TECHNICIAN%' OR designation LIKE '%Service%') AND deletedAt IS NULL ORDER BY name ASC LIMIT ? OFFSET ?").bind(shopId, limit, offset).all();
       const { results: countRes } = await db.prepare("SELECT COUNT(*) as total FROM employees WHERE shopId = ? AND (designation LIKE '%TECHNICIAN%' OR designation LIKE '%Service%') AND deletedAt IS NULL").bind(shopId).all();
       return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/technicians/schedule', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const date = c.req.query('date') || new Date().toISOString().slice(0, 10);
+      const { results: techs } = await db.prepare("SELECT id, name, designation, status FROM employees WHERE shopId = ? AND (designation LIKE '%TECHNICIAN%' OR designation LIKE '%Service%') AND status = 'ACTIVE' ORDER BY name").bind(shopId).all();
+      const techList = (techs as any) || [];
+      for (const tech of techList) {
+        const { results: jobs } = await db.prepare("SELECT id, ticketNumber, deviceType, deviceBrand, deviceModel, status, createdAt FROM service_repairs WHERE technicianId = ? AND shopId = ? AND date(createdAt) = ? ORDER BY createdAt ASC").bind(tech.id, shopId, date).all();
+        tech.jobs = (jobs as any)?.results || [];
+      }
+      return c.json({ data: { date, technicians: techList } });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
@@ -1199,6 +1238,16 @@ export function servicesRoutes(app: any) {
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 
+  app.get('/api/warranties/claims', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      const { results } = await db.prepare("SELECT w.*, p.name as productName, c.name as customerName FROM warranties w LEFT JOIN products p ON w.productId = p.id LEFT JOIN customers c ON w.customerId = c.id WHERE w.shopId = ? AND w.status = 'CLAIMED' ORDER BY w.updatedAt DESC LIMIT ? OFFSET ?").bind(shopId, limit, offset).all();
+      const { results: countRes } = await db.prepare("SELECT COUNT(*) as total FROM warranties WHERE shopId = ? AND status = 'CLAIMED'").bind(shopId).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
   app.get('/api/warranties/:id', async (c) => {
     try {
       const warranty = await c.env.DB.prepare('SELECT w.*, p.name as productName, c.name as customerName FROM warranties w LEFT JOIN products p ON w.productId = p.id LEFT JOIN customers c ON w.customerId = c.id WHERE w.id = ? AND w.shopId = ?').bind(c.req.param('id'), c.var.shopId).first();
@@ -1231,6 +1280,42 @@ export function servicesRoutes(app: any) {
       const now = new Date().toISOString();
       await c.env.DB.prepare("UPDATE warranties SET status = 'CLAIMED', updatedAt = ? WHERE id = ? AND shopId = ?").bind(now, id, c.var.shopId).run();
       return c.json({ message: 'Claim submitted', data: { id, status: 'CLAIMED', claimNotes: claimNotes || null } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/service-reports/categories', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const { results } = await db.prepare("SELECT deviceType, COUNT(*) as count, SUM(CASE WHEN status IN ('COMPLETED','DELIVERED') THEN 1 ELSE 0 END) as completed FROM service_repairs WHERE shopId = ? AND deviceType IS NOT NULL GROUP BY deviceType ORDER BY count DESC").bind(shopId).all();
+      const { results: totals } = await db.prepare("SELECT COUNT(*) as total, SUM(CASE WHEN status IN ('COMPLETED','DELIVERED') THEN 1 ELSE 0 END) as done FROM service_repairs WHERE shopId = ?").bind(shopId).all();
+      return c.json({ data: results || [], summary: (totals as any)?.[0] || { total: 0, done: 0 } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/service-reports/technician/:id', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const tech = await db.prepare("SELECT id, name, email, phone, designation, joinDate, status FROM employees WHERE id = ? AND shopId = ? AND (designation LIKE '%TECHNICIAN%' OR designation LIKE '%Service%')").bind(c.req.param('id'), shopId).first();
+      if (!tech) return c.json({ error: 'Technician not found' }, 404);
+      const [assigned, completed, inProgress, avgTime, recent] = await Promise.all([
+        db.prepare("SELECT COUNT(*) as c FROM service_repairs WHERE technicianId = ? AND shopId = ?").bind(c.req.param('id'), shopId).first(),
+        db.prepare("SELECT COUNT(*) as c FROM service_repairs WHERE technicianId = ? AND shopId = ? AND status IN ('COMPLETED','DELIVERED')").bind(c.req.param('id'), shopId).first(),
+        db.prepare("SELECT COUNT(*) as c FROM service_repairs WHERE technicianId = ? AND shopId = ? AND status = 'IN_PROGRESS'").bind(c.req.param('id'), shopId).first(),
+        db.prepare("SELECT AVG(julianday(updatedAt) - julianday(createdAt)) as avg FROM service_repairs WHERE technicianId = ? AND shopId = ? AND status IN ('COMPLETED','DELIVERED')").bind(c.req.param('id'), shopId).first(),
+        db.prepare("SELECT id, ticketNumber, deviceType, deviceBrand, deviceModel, status, createdAt FROM service_repairs WHERE technicianId = ? AND shopId = ? ORDER BY createdAt DESC LIMIT 10").bind(c.req.param('id'), shopId).all(),
+      ]);
+      return c.json({ data: { technician: tech, stats: { assigned: (assigned as any)?.c || 0, completed: (completed as any)?.c || 0, inProgress: (inProgress as any)?.c || 0, avgCompletionDays: (avgTime as any)?.avg || 0 }, recentJobs: (recent as any)?.results || [] } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/service-parts/low-stock', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      const threshold = parseInt(c.req.query('threshold') || '5');
+      const { results } = await db.prepare("SELECT sri.*, p.name as productName, p.sku FROM service_repair_items sri JOIN service_repairs sr ON sr.id = sri.serviceRepairId LEFT JOIN products p ON sri.productId = p.id WHERE sr.shopId = ? AND sri.quantity <= ? ORDER BY sri.quantity ASC LIMIT ? OFFSET ?").bind(shopId, threshold, limit, offset).all();
+      const { results: countRes } = await db.prepare("SELECT COUNT(*) as total FROM service_repair_items sri JOIN service_repairs sr ON sr.id = sri.serviceRepairId WHERE sr.shopId = ? AND sri.quantity <= ?").bind(shopId, threshold).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
 

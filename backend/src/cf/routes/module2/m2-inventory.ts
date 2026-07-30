@@ -474,4 +474,56 @@ export function inventoryRoutes(app: any) {
       return c.json({ data: updated });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  // ==================== WAREHOUSES ====================
+
+  app.post('/api/warehouses', async (c) => {
+    try {
+      const { name, address, managerId } = await c.req.json();
+      if (!name) return c.json({ error: 'Name required' }, 400);
+      const id = crypto.randomUUID(); const now = new Date().toISOString();
+      await c.env.DB.prepare('INSERT INTO warehouses (id, shopId, name, address, managerId, isActive, createdAt, updatedAt) VALUES (?,?,?,?,?,1,?,?)').bind(id, c.var.shopId, name, address || null, managerId || null, now, now).run();
+      return c.json({ data: { id, name, address: address || null, managerId: managerId || null } }, 201);
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/warehouses', async (c) => {
+    try {
+      const search = c.req.query('search') || '';
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      let where = 'WHERE shopId = ? AND isActive = 1'; const params: any[] = [c.var.shopId];
+      if (search) { where += ' AND name LIKE ?'; params.push(`%${search}%`); }
+      const { results } = await c.env.DB.prepare(`SELECT * FROM warehouses ${where} ORDER BY name ASC LIMIT ? OFFSET ?`).bind(...params, limit, offset).all();
+      const { results: countRes } = await c.env.DB.prepare(`SELECT COUNT(*) as total FROM warehouses ${where}`).bind(...params).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/warehouses/:id', async (c) => {
+    try {
+      const wh = await c.env.DB.prepare('SELECT * FROM warehouses WHERE id = ? AND shopId = ?').bind(c.req.param('id'), c.var.shopId).first();
+      if (!wh) return c.json({ error: 'Not found' }, 404);
+      return c.json({ data: wh });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.patch('/api/warehouses/:id', async (c) => {
+    try {
+      const body = await c.req.json(); const allowed = ['name', 'address', 'managerId', 'isActive'];
+      const sets: string[] = []; const vals: any[] = [];
+      for (const k of allowed) { if (body[k] !== undefined) { sets.push(`${k} = ?`); vals.push(body[k]); } }
+      if (!sets.length) return c.json({ error: 'No valid fields' }, 400);
+      vals.push(new Date().toISOString(), c.req.param('id'), c.var.shopId);
+      await c.env.DB.prepare(`UPDATE warehouses SET ${sets.join(', ')}, updatedAt = ? WHERE id = ? AND shopId = ?`).bind(...vals).run();
+      const updated = await c.env.DB.prepare('SELECT * FROM warehouses WHERE id = ?').bind(c.req.param('id')).first();
+      return c.json({ data: updated });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.delete('/api/warehouses/:id', async (c) => {
+    try {
+      await c.env.DB.prepare('UPDATE warehouses SET isActive = 0, updatedAt = ? WHERE id = ? AND shopId = ?').bind(new Date().toISOString(), c.req.param('id'), c.var.shopId).run();
+      return c.json({ message: 'Deleted' });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }

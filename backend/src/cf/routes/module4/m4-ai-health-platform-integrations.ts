@@ -429,4 +429,54 @@ export function m4AiHealthPlatformIntegrationsRoutes(app: any) {
       return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });
+
+  app.get('/api/platform/analytics', async (c) => {
+    try {
+      const db = c.env.DB;
+      const [totalShops, activeShops, totalUsers, totalSales, totalRevenue, monthRevenue] = await Promise.all([
+        db.prepare("SELECT COUNT(*) as c FROM shops").first(),
+        db.prepare("SELECT COUNT(*) as c FROM shops WHERE isActive = 1").first(),
+        db.prepare("SELECT COUNT(*) as c FROM users WHERE status = 'ACTIVE'").first(),
+        db.prepare("SELECT COUNT(*) as c FROM sales WHERE status != 'CANCELLED'").first(),
+        db.prepare("SELECT COALESCE(SUM(total),0) as t FROM sales WHERE status != 'CANCELLED'").first(),
+        db.prepare("SELECT COALESCE(SUM(total),0) as t FROM sales WHERE status != 'CANCELLED' AND date >= date('now','-30 days')").first(),
+      ]);
+      return c.json({ data: {
+        totalShops: (totalShops as any)?.c || 0, activeShops: (activeShops as any)?.c || 0,
+        totalUsers: (totalUsers as any)?.c || 0, totalSales: (totalSales as any)?.c || 0,
+        totalRevenue: (totalRevenue as any)?.t || 0, monthlyRevenue: (monthRevenue as any)?.t || 0,
+      } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.get('/api/platform/logs', async (c) => {
+    try {
+      const db = c.env.DB;
+      const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100); const offset = parseInt(c.req.query('offset') || '0');
+      const type = c.req.query('type') || '';
+      await db.prepare("CREATE TABLE IF NOT EXISTS platform_logs (id TEXT PRIMARY KEY, type TEXT, action TEXT, userId TEXT, details TEXT, ip TEXT, createdAt TEXT)").run();
+      let where = 'WHERE 1=1'; const params: any[] = [];
+      if (type) { where += ' AND type = ?'; params.push(type); }
+      const { results } = await db.prepare(`SELECT * FROM platform_logs ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`).bind(...params, limit, offset).all();
+      const { results: countRes } = await db.prepare(`SELECT COUNT(*) as total FROM platform_logs ${where}`).bind(...params).all();
+      return c.json({ data: results, total: (countRes as any)[0]?.total || 0, limit, offset });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
+
+  app.post('/api/ai/settings', async (c) => {
+    try {
+      const db = c.env.DB; const shopId = c.var.shopId;
+      const { provider, model, apiKey, temperature, maxTokens, enabled } = await c.req.json();
+      const now = new Date().toISOString();
+      await db.prepare("CREATE TABLE IF NOT EXISTS ai_settings (id TEXT PRIMARY KEY, shopId TEXT NOT NULL, provider TEXT DEFAULT 'OPENAI', model TEXT DEFAULT 'gpt-3.5-turbo', apiKeyEncrypted TEXT, temperature REAL DEFAULT 0.7, maxTokens INTEGER DEFAULT 500, enabled INTEGER DEFAULT 1, createdAt TEXT, updatedAt TEXT)").run();
+      const existing = await db.prepare("SELECT id FROM ai_settings WHERE shopId = ? ORDER BY createdAt DESC LIMIT 1").bind(shopId).first() as any;
+      if (existing) {
+        await db.prepare("UPDATE ai_settings SET provider = COALESCE(?, provider), model = COALESCE(?, model), temperature = COALESCE(?, temperature), maxTokens = COALESCE(?, maxTokens), enabled = COALESCE(?, enabled), updatedAt = ? WHERE id = ?").bind(provider || null, model || null, temperature ?? null, maxTokens ?? null, enabled ?? null, now, existing.id).run();
+      } else {
+        const id = crypto.randomUUID();
+        await db.prepare("INSERT INTO ai_settings (id, shopId, provider, model, apiKeyEncrypted, temperature, maxTokens, enabled, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?)").bind(id, shopId, provider || 'OPENAI', model || 'gpt-3.5-turbo', apiKey ? 'ENCRYPTED' : null, temperature ?? 0.7, maxTokens ?? 500, enabled ?? 1, now, now).run();
+      }
+      return c.json({ data: { provider: provider || 'OPENAI', model: model || 'gpt-3.5-turbo', temperature: temperature ?? 0.7, maxTokens: maxTokens ?? 500, enabled: enabled ?? 1 } });
+    } catch (err: any) { return c.json({ error: err.message }, 500); }
+  });
 }
