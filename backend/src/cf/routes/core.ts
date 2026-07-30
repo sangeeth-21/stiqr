@@ -24,7 +24,7 @@ export function coreRoutes(app: any) {
       const id = crypto.randomUUID(); const now = new Date().toISOString();
       const { hashPassword } = await import('../main');
       const hashed = await hashPassword(password);
-      await c.env.DB.prepare('INSERT INTO users (id, email, name, phone, password, role, status, shopId, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?)').bind(id, email, name, phone || null, hashed, role || 'STAFF', 'ACTIVE', c.var.shopId, now, now).run();
+      await c.env.DB.prepare('INSERT INTO users (id, email, name, phone, password, display_password, role, status, shopId, createdAt, updatedAt) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(id, email, name, phone || null, hashed, password, role || 'STAFF', 'ACTIVE', c.var.shopId, now, now).run();
       return c.json({ data: { id, email, name, phone, role: role || 'STAFF', shopId: c.var.shopId } }, 201);
     } catch (err: any) { return c.json({ error: err.message }, 500); }
   });

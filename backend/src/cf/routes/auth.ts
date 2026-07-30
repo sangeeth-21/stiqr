@@ -19,7 +19,7 @@ export function authRoutes(app: any) {
       await db.batch([
         db.prepare(`INSERT INTO tenants (id, name, slug, email, phone, isActive, createdAt, updatedAt) VALUES (?,?,?,?,?,1,?,?)`).bind(tenantId, shopName, `${slug}-${tenantId.slice(0,8)}`, email, mobile, now, now),
         db.prepare(`INSERT INTO shops (id, name, slug, isActive, createdAt, updatedAt) VALUES (?,?,?,1,?,?)`).bind(shopId, shopName, `${slug}-${userId.slice(0,8)}`, now, now),
-        db.prepare(`INSERT INTO users (id, email, name, phone, password, role, status, shopId, tenantId, emailVerified, phoneVerified, failedAttempts, createdAt, updatedAt) VALUES (?,?,?,?,?,'OWNER','ACTIVE',?,?,1,1,0,?,?)`).bind(userId, email, ownerName, mobile, hashedPw, shopId, tenantId, now, now),
+        db.prepare(`INSERT INTO users (id, email, name, phone, password, display_password, role, status, shopId, tenantId, emailVerified, phoneVerified, failedAttempts, createdAt, updatedAt) VALUES (?,?,?,?,?,?,'OWNER','ACTIVE',?,?,1,1,0,?,?)`).bind(userId, email, ownerName, mobile, hashedPw, password, shopId, tenantId, now, now),
       ]);
       const token = await jwtSign({ sub: userId, email, role: 'OWNER', shopId, tenantId }, c.env.JWT_SECRET);
       return c.json({ data: { id: userId, email, name: ownerName, role: 'OWNER', shopId, tenantId, token } }, 201);
