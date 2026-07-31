@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "StiQR API",
-    "description": "StiQR API Collection — Cloudflare Workers (Hono) — live at https://stiqr-api.ksangeeth76.workers.dev\n\nRoles:\n- admin  → platform administration + manages owners (/admin/*, /platform-admin/*)\n- owner  → manages their own staff only (/owner/*)\n- staff  → no management access\n\nAuthentication:\n- POST /auth/login returns accessToken (15 min) + refreshToken (30 days).\n- Send access tokens as: Authorization: Bearer {{accessToken}}\n- When the access token expires, call POST /auth/refresh with the refreshToken.\n- Login request auto-saves accessToken / refreshToken and the role-scoped adminToken / ownerToken collection variables.\n\nPlatform Admin (admin only):\n- Dashboard, Shops, Subscription Plans, Subscriptions, Login Credentials, Payments, Platform Reports, Platform Settings.\n- Maintenance mode can be toggled via POST /admin/settings/maintenance — while enabled, non-admin logins and requests return 503.\n\nVariables:\n- baseUrl: https://stiqr-api.ksangeeth76.workers.dev\n- accessToken: regular session token (from login)\n- adminToken: token for admin routes\n- ownerToken: token for owner routes\n- refreshToken: rotation token\n\nPasswords must be 8+ chars with uppercase, lowercase, number and special character.",
+    "description": "StiQR API Collection — Cloudflare Workers (Hono) — live at https://stiqr-api.ksangeeth76.workers.dev\n\nRoles:\n- admin  → platform administration + manages owners (/admin/*, /platform-admin/*)\n- owner  → manages their own staff (/owner/*) and their shop profile, settings, business hours, GST, invoice, printer and branding (/shop/*)\n- staff  → no management access\n\nAuthentication:\n- POST /auth/login returns accessToken (15 min) + refreshToken (30 days).\n- Send access tokens as: Authorization: Bearer {{accessToken}}\n- When the access token expires, call POST /auth/refresh with the refreshToken.\n- Login request auto-saves accessToken / refreshToken and the role-scoped adminToken / ownerToken collection variables.\n\nPlatform Admin (admin only):\n- Dashboard, Shops, Subscription Plans, Subscriptions, Login Credentials, Payments, Platform Reports, Platform Settings.\n- Maintenance mode can be toggled via POST /admin/settings/maintenance — while enabled, non-admin logins and requests return 503.\n\nVariables:\n- baseUrl: https://stiqr-api.ksangeeth76.workers.dev\n- accessToken: regular session token (from login)\n- adminToken: token for admin routes\n- ownerToken: token for owner routes\n- refreshToken: rotation token\n\nPasswords must be 8+ chars with uppercase, lowercase, number and special character.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -63,6 +63,11 @@
     {
       "key": "settingKey",
       "value": "platform_name",
+      "type": "string"
+    },
+    {
+      "key": "shopSettingKey",
+      "value": "receipt_footer",
       "type": "string"
     }
   ],
@@ -985,6 +990,520 @@
             "description": "Reset a staff member's password and revoke all their sessions."
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏪 Owner — Shop Management",
+      "description": "Owner-scoped shop module: profile, settings, business hours, GST, invoice, printer and branding. All requests use ownerToken and operate on the owner’s own shop.",
+      "item": [
+        {
+          "name": "Shop Profile",
+          "description": "Owner views and updates their own shop profile (single shop per owner).",
+          "item": [
+            {
+              "name": "GET /shop/profile",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/profile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "profile"
+                  ]
+                },
+                "description": "Get the current owner’s shop profile including subscription plan."
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH /shop/profile",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tagline\": \"Best electronics in town\",\n  \"website\": \"https://myshop.example\",\n  \"currency\": \"INR\",\n  \"timezone\": \"Asia/Kolkata\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shop/profile",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "profile"
+                  ]
+                },
+                "description": "Update shop profile fields (name, slug, contact, address, website, tagline, currency, timezone, logo)."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Shop Settings",
+          "description": "Typed key-value settings for the owner’s shop.",
+          "item": [
+            {
+              "name": "GET /shop/settings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "settings"
+                  ]
+                },
+                "description": "List all shop settings."
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /shop/settings/{{shopSettingKey}}",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": \"Thank you!\",\n  \"type\": \"string\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shop/settings/{{shopSettingKey}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "settings",
+                    "{{shopSettingKey}}"
+                  ]
+                },
+                "description": "Create or update a shop setting (value can be string, number or boolean)."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /shop/settings/{{shopSettingKey}}",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/settings/{{shopSettingKey}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "settings",
+                    "{{shopSettingKey}}"
+                  ]
+                },
+                "description": "Delete a shop setting."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Business Hours",
+          "description": "Weekly opening hours. Day 0 = Monday ... 6 = Sunday.",
+          "item": [
+            {
+              "name": "GET /shop/business-hours",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/business-hours",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "business-hours"
+                  ]
+                },
+                "description": "Get the weekly business hours (auto-initialised with 09:00–18:00 Mon–Sat)."
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /shop/business-hours",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "[\n  { \"day\": 0, \"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"19:00\" },\n  { \"day\": 1, \"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"19:00\" },\n  { \"day\": 2, \"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"19:00\" },\n  { \"day\": 3, \"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"19:00\" },\n  { \"day\": 4, \"isOpen\": true, \"openTime\": \"09:00\", \"closeTime\": \"19:00\" },\n  { \"day\": 5, \"isOpen\": true, \"openTime\": \"10:00\", \"closeTime\": \"20:00\" },\n  { \"day\": 6, \"isOpen\": false }\n]",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shop/business-hours",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "business-hours"
+                  ]
+                },
+                "description": "Replace the weekly schedule. Open days must include openTime and closeTime (HH:MM)."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "GST / Tax",
+          "description": "GST and tax configuration for the owner’s shop.",
+          "item": [
+            {
+              "name": "GET /shop/gst",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/gst",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "gst"
+                  ]
+                },
+                "description": "Get GST / tax configuration."
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /shop/gst",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"gstNumber\": \"29ABCDE1234F1Z5\",\n  \"businessName\": \"My Shop Pvt Ltd\",\n  \"stateCode\": \"29\",\n  \"registeredAddress\": \"Bangalore, Karnataka\",\n  \"isRegistered\": true,\n  \"taxInclusive\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shop/gst",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "gst"
+                  ]
+                },
+                "description": "Update GST number, registered business name, state code, address and tax-inclusive flag."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Invoice",
+          "description": "Invoice configuration and numbering.",
+          "item": [
+            {
+              "name": "GET /shop/invoice",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/invoice",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "invoice"
+                  ]
+                },
+                "description": "Get invoice settings and the next invoice number."
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /shop/invoice",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prefix\": \"INV-\",\n  \"footer\": \"Thanks for shopping!\",\n  \"paymentTerms\": \"Due on receipt\",\n  \"showGst\": true,\n  \"showLogo\": true,\n  \"autoIncrement\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shop/invoice",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "invoice"
+                  ]
+                },
+                "description": "Update invoice prefix, numbering, footer, payment terms and GST/logo display flags."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /shop/invoice/next-number",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/invoice/next-number",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "invoice",
+                    "next-number"
+                  ]
+                },
+                "description": "Reserve the next invoice number (auto-increments when enabled)."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Printer",
+          "description": "Receipt and label printer configuration.",
+          "item": [
+            {
+              "name": "GET /shop/printer",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/printer",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "printer"
+                  ]
+                },
+                "description": "Get printer settings."
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /shop/printer",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"printerType\": \"thermal\",\n  \"thermalWidth\": 80,\n  \"paperSize\": \"80mm\",\n  \"header\": \"My Shop\",\n  \"footer\": \"Powered by StiQR\",\n  \"copies\": 1,\n  \"showBarcode\": true,\n  \"showQr\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shop/printer",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "printer"
+                  ]
+                },
+                "description": "Update printer type, paper size, header/footer text, copies and barcode/QR flags."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Branding",
+          "description": "Logo, colours, theme and receipt footer.",
+          "item": [
+            {
+              "name": "GET /shop/branding",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/shop/branding",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "branding"
+                  ]
+                },
+                "description": "Get branding settings."
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /shop/branding",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{ownerToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"logoUrl\": \"https://example.com/logo.png\",\n  \"primaryColor\": \"#2563eb\",\n  \"accentColor\": \"#f59e0b\",\n  \"theme\": \"light\",\n  \"watermark\": \"\",\n  \"receiptFooter\": \"Visit again!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/shop/branding",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "shop",
+                    "branding"
+                  ]
+                },
+                "description": "Update logo, primary/accent colours (hex), theme and receipt footer."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },

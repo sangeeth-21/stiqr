@@ -6,6 +6,7 @@ import auth from './routes/auth'
 import admin from './routes/admin'
 import owner from './routes/owner'
 import platform from './routes/platform'
+import shop from './routes/shop'
 import { rateLimit } from './middleware/rateLimit'
 
 type Bindings = {
@@ -58,5 +59,6 @@ app.route('/auth', auth)
 app.route('/admin', admin)
 app.route('/admin', platform)
 app.route('/owner', owner)
+app.route('/shop', shop)
 
 export default app
