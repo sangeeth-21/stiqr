@@ -35,3 +35,13 @@ export function generateId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16))
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }
+
+export function generateToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  return bytesToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+export async function hashToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
+  return bytesToBase64(new Uint8Array(digest))
+}
