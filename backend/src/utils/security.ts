@@ -31,6 +31,11 @@ export async function revokeUserSessions(db: D1Database, userId: string) {
   await db.prepare('UPDATE siq_refresh_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL').bind(now(), userId).run()
 }
 
+export async function isMaintenanceMode(db: D1Database): Promise<boolean> {
+  const row = await db.prepare("SELECT value FROM siq_platform_settings WHERE key = 'maintenance_mode'").first<any>()
+  return row?.value === 'true'
+}
+
 export async function logAudit(db: D1Database, actorId: string | null, action: string, entityType?: string, entityId?: string, meta?: unknown) {
   await db.prepare('INSERT INTO siq_audit_logs (id, actor_id, action, entity_type, entity_id, meta) VALUES (?, ?, ?, ?, ?, ?)').bind(
     generateId(),

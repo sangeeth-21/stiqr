@@ -1,17 +1,70 @@
 {
   "info": {
     "name": "StiQR API",
-    "description": "StiQR API Collection — Cloudflare Workers (Hono) — live at https://stiqr-api.ksangeeth76.workers.dev\n\nRoles:\n- admin  → manages owners only (/admin/*)\n- owner  → manages their own staff only (/owner/*)\n- staff  → no management access\n\nAuthentication:\n- POST /auth/login returns accessToken (15 min) + refreshToken (30 days).\n- Send access tokens as: Authorization: Bearer {{accessToken}}\n- When the access token expires, call POST /auth/refresh with the refreshToken.\n- Login request auto-saves accessToken / refreshToken and the role-scoped adminToken / ownerToken collection variables.\n\nVariables:\n- baseUrl: https://stiqr-api.ksangeeth76.workers.dev\n- accessToken: regular session token (from login)\n- adminToken: token for admin routes\n- ownerToken: token for owner routes\n- refreshToken: rotation token\n\nPasswords must be 8+ chars with uppercase, lowercase, number and special character.",
+    "description": "StiQR API Collection — Cloudflare Workers (Hono) — live at https://stiqr-api.ksangeeth76.workers.dev\n\nRoles:\n- admin  → platform administration + manages owners (/admin/*, /platform-admin/*)\n- owner  → manages their own staff only (/owner/*)\n- staff  → no management access\n\nAuthentication:\n- POST /auth/login returns accessToken (15 min) + refreshToken (30 days).\n- Send access tokens as: Authorization: Bearer {{accessToken}}\n- When the access token expires, call POST /auth/refresh with the refreshToken.\n- Login request auto-saves accessToken / refreshToken and the role-scoped adminToken / ownerToken collection variables.\n\nPlatform Admin (admin only):\n- Dashboard, Shops, Subscription Plans, Subscriptions, Login Credentials, Payments, Platform Reports, Platform Settings.\n- Maintenance mode can be toggled via POST /admin/settings/maintenance — while enabled, non-admin logins and requests return 503.\n\nVariables:\n- baseUrl: https://stiqr-api.ksangeeth76.workers.dev\n- accessToken: regular session token (from login)\n- adminToken: token for admin routes\n- ownerToken: token for owner routes\n- refreshToken: rotation token\n\nPasswords must be 8+ chars with uppercase, lowercase, number and special character.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "https://stiqr-api.ksangeeth76.workers.dev", "type": "string" },
-    { "key": "accessToken", "value": "", "type": "string" },
-    { "key": "adminToken", "value": "", "type": "string" },
-    { "key": "ownerToken", "value": "", "type": "string" },
-    { "key": "refreshToken", "value": "", "type": "string" },
-    { "key": "ownerId", "value": "", "type": "string" },
-    { "key": "staffId", "value": "", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "https://stiqr-api.ksangeeth76.workers.dev",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ownerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staffId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shopId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "planId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "subscriptionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "settingKey",
+      "value": "platform_name",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -23,17 +76,30 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@stiqr.com\",\n  \"password\": \"YourPassword@123\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             },
             "description": "Log in and receive an access token (15 min) plus a refresh token (30 days). Auto-saves accessToken / refreshToken / adminToken / ownerToken collection variables. Brute-force protected: 5 failed attempts locks the account for 15 minutes."
           },
@@ -61,17 +127,30 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/refresh",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "refresh"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
             },
             "description": "Rotate the refresh token and receive a new accessToken + refreshToken pair. Old refresh tokens are revoked on every use (rotation)."
           },
@@ -97,18 +176,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             },
             "description": "Revoke the current refresh token (requires a valid access token)."
           },
@@ -119,18 +215,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Shop Owner\",\n  \"email\": \"owner@example.com\",\n  \"password\": \"Owner@1234\",\n  \"role\": \"owner\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             },
             "description": "Create a user. Role-scoped: admins may create owners, owners may create staff. Role: owner | staff."
           },
@@ -141,12 +254,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/auth/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
             },
             "description": "Return the current user profile, status and effective permissions."
           },
@@ -157,18 +279,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"currentPassword\": \"OldPass@123\",\n  \"newPassword\": \"NewPass@456\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "change-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
             },
             "description": "Change your own password. Revokes all active sessions for the account."
           },
@@ -185,12 +324,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/admin/roles",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "roles"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "roles"
+              ]
             },
             "description": "List all roles with their assigned permissions."
           },
@@ -201,12 +349,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/admin/permissions",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "permissions"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "permissions"
+              ]
             },
             "description": "List the full permission catalog."
           },
@@ -217,12 +374,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/admin/audit-logs",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "audit-logs"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "audit-logs"
+              ]
             },
             "description": "Most recent 200 audit log entries (logins, user creation, suspension, password resets, deletions)."
           },
@@ -233,12 +399,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/admin/owners",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners"
+              ]
             },
             "description": "List all owners with their staff count."
           },
@@ -263,18 +438,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"John Shop\",\n  \"email\": \"owner@example.com\",\n  \"password\": \"Owner@1234\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/admin/owners",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners"
+              ]
             },
             "description": "Create a new owner account (admin only)."
           },
@@ -285,12 +477,22 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/admin/owners/{{ownerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners", "{{ownerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners",
+                "{{ownerId}}"
+              ]
             },
             "description": "Get a single owner together with their staff list."
           },
@@ -301,18 +503,36 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"John Shop Updated\",\n  \"email\": \"owner.updated@example.com\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/admin/owners/{{ownerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners", "{{ownerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners",
+                "{{ownerId}}"
+              ]
             },
             "description": "Update an owner's name and/or email."
           },
@@ -323,12 +543,22 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/admin/owners/{{ownerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners", "{{ownerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners",
+                "{{ownerId}}"
+              ]
             },
             "description": "Delete an owner together with all of their staff."
           },
@@ -339,18 +569,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Policy violation\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/admin/owners/{{ownerId}}/suspend",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners", "{{ownerId}}", "suspend"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners",
+                "{{ownerId}}",
+                "suspend"
+              ]
             },
             "description": "Suspend an owner. Takes effect immediately and revokes all sessions."
           },
@@ -361,18 +610,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Appeal approved\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/admin/owners/{{ownerId}}/activate",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners", "{{ownerId}}", "activate"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners",
+                "{{ownerId}}",
+                "activate"
+              ]
             },
             "description": "Reactivate a suspended owner."
           },
@@ -383,18 +651,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{adminToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"password\": \"NewOwner@567\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/admin/owners/{{ownerId}}/reset-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "owners", "{{ownerId}}", "reset-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "owners",
+                "{{ownerId}}",
+                "reset-password"
+              ]
             },
             "description": "Reset an owner's password and revoke all their sessions."
           },
@@ -411,12 +698,21 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/owner/staff",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff"
+              ]
             },
             "description": "List all staff belonging to the current owner."
           },
@@ -441,18 +737,35 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Alice Staff\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"Staff@1234\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/owner/staff",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff"
+              ]
             },
             "description": "Create a new staff member under the current owner."
           },
@@ -463,12 +776,22 @@
           "request": {
             "method": "GET",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/owner/staff/{{staffId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff", "{{staffId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff",
+                "{{staffId}}"
+              ]
             },
             "description": "Get a single staff member (must belong to the current owner)."
           },
@@ -479,18 +802,36 @@
           "request": {
             "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Alice Staff Updated\",\n  \"email\": \"alice.updated@example.com\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/owner/staff/{{staffId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff", "{{staffId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff",
+                "{{staffId}}"
+              ]
             },
             "description": "Update a staff member's name and/or email."
           },
@@ -501,12 +842,22 @@
           "request": {
             "method": "DELETE",
             "header": [
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/owner/staff/{{staffId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff", "{{staffId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff",
+                "{{staffId}}"
+              ]
             },
             "description": "Delete a staff member (must belong to the current owner)."
           },
@@ -517,18 +868,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Absent without notice\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/owner/staff/{{staffId}}/suspend",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff", "{{staffId}}", "suspend"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff",
+                "{{staffId}}",
+                "suspend"
+              ]
             },
             "description": "Suspend a staff member. Takes effect immediately and revokes all sessions."
           },
@@ -539,18 +909,37 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"reason\": \"Returned to work\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/owner/staff/{{staffId}}/activate",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff", "{{staffId}}", "activate"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff",
+                "{{staffId}}",
+                "activate"
+              ]
             },
             "description": "Reactivate a suspended staff member."
           },
@@ -561,22 +950,1165 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json", "type": "text" },
-              { "key": "Authorization", "value": "Bearer {{ownerToken}}", "type": "text" }
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ownerToken}}",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"password\": \"NewStaff@789\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/owner/staff/{{staffId}}/reset-password",
-              "host": ["{{baseUrl}}"],
-              "path": ["owner", "staff", "{{staffId}}", "reset-password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "owner",
+                "staff",
+                "{{staffId}}",
+                "reset-password"
+              ]
             },
             "description": "Reset a staff member's password and revoke all their sessions."
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏢 Platform Admin",
+      "description": "Admin-only platform operations: dashboard, shops, subscription plans & subscriptions, login credentials, payments, reports and settings. All requests use adminToken.",
+      "item": [
+        {
+          "name": "Dashboard",
+          "item": [
+            {
+              "name": "GET /admin/dashboard/overview",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/dashboard/overview",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "dashboard",
+                    "overview"
+                  ]
+                },
+                "description": "Platform-wide stats: owners, staff, shops, subscriptions, revenue and recent activity."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/dashboard/activity",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/dashboard/activity",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "dashboard",
+                    "activity"
+                  ]
+                },
+                "description": "Recent audit log activity across the platform."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Shops",
+          "item": [
+            {
+              "name": "GET /admin/shops",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/shops",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "shops"
+                  ]
+                },
+                "description": "List all shops with owner, active subscriptions and total revenue."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "if (pm.response.code === 200 && Array.isArray(json) && json.length > 0) {",
+                      "  pm.collectionVariables.set('shopId', json[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "POST /admin/shops",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ownerId\": \"{{ownerId}}\",\n  \"name\": \"Mega Electronics\",\n  \"slug\": \"mega-electronics\",\n  \"phone\": \"9999999999\",\n  \"email\": \"shop@example.com\",\n  \"address\": \"123 Main St\",\n  \"city\": \"Chennai\",\n  \"state\": \"Tamil Nadu\",\n  \"postalCode\": \"600001\",\n  \"country\": \"IN\",\n  \"gstNumber\": \"33ABCDE1234F1Z5\",\n  \"planId\": \"plan_pro\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/shops",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "shops"
+                  ]
+                },
+                "description": "Create a shop for an owner. Optionally attach a subscription plan."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/shops/{{shopId}}",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/shops/{{shopId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "shops",
+                    "{{shopId}}"
+                  ]
+                },
+                "description": "Shop detail with its subscriptions and payments."
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH /admin/shops/{{shopId}}",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Mega Electronics Updated\",\n  \"city\": \"Bengaluru\",\n  \"gstNumber\": \"29ABCDE1234F1Z5\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/shops/{{shopId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "shops",
+                    "{{shopId}}"
+                  ]
+                },
+                "description": "Update shop profile fields."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /admin/shops/{{shopId}}",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/shops/{{shopId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "shops",
+                    "{{shopId}}"
+                  ]
+                },
+                "description": "Permanently delete a shop."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/shops/{{shopId}}/suspend",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Admin action\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/shops/{{shopId}}/suspend",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "shops",
+                    "{{shopId}}",
+                    "suspend"
+                  ]
+                },
+                "description": "Suspend a shop and pause its active subscriptions."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/shops/{{shopId}}/activate",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Admin action\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/shops/{{shopId}}/activate",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "shops",
+                    "{{shopId}}",
+                    "activate"
+                  ]
+                },
+                "description": "Reactivate a suspended shop."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Subscription Plans",
+          "item": [
+            {
+              "name": "GET /admin/plans",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/plans",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "plans"
+                  ]
+                },
+                "description": "List all subscription plans."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/plans",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Gold\",\n  \"code\": \"gold\",\n  \"price\": 999,\n  \"currency\": \"INR\",\n  \"billingCycle\": \"monthly\",\n  \"features\": \"{\\\"staff\\\":50,\\\"shops\\\":1}\",\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/plans",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "plans"
+                  ]
+                },
+                "description": "Create a new subscription plan."
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH /admin/plans/{{planId}}",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Gold\",\n  \"code\": \"gold-2026\",\n  \"price\": 999,\n  \"currency\": \"INR\",\n  \"billingCycle\": \"monthly\",\n  \"features\": \"{\\\"staff\\\":50,\\\"shops\\\":1}\",\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/plans/{{planId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "plans",
+                    "{{planId}}"
+                  ]
+                },
+                "description": "Update a subscription plan."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Subscriptions",
+          "item": [
+            {
+              "name": "GET /admin/subscriptions",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/subscriptions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "subscriptions"
+                  ]
+                },
+                "description": "List all shop subscriptions with plan and shop info."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "if (pm.response.code === 200 && Array.isArray(json) && json.length > 0) {",
+                      "  pm.collectionVariables.set('subscriptionId', json[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /admin/subscriptions/{{subscriptionId}}",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/subscriptions/{{subscriptionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "subscriptions",
+                    "{{subscriptionId}}"
+                  ]
+                },
+                "description": "Subscription detail with payments."
+              },
+              "response": []
+            },
+            {
+              "name": "PATCH /admin/subscriptions/{{subscriptionId}}",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"active\",\n  \"autoRenew\": true,\n  \"planId\": \"plan_enterprise\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/subscriptions/{{subscriptionId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "subscriptions",
+                    "{{subscriptionId}}"
+                  ]
+                },
+                "description": "Change subscription plan, status or auto-renewal."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/subscriptions/{{subscriptionId}}/renew",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"months\": 1,\n  \"amount\": 499\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/subscriptions/{{subscriptionId}}/renew",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "subscriptions",
+                    "{{subscriptionId}}",
+                    "renew"
+                  ]
+                },
+                "description": "Renew a subscription for N months and optionally record a payment."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Login Credentials",
+          "item": [
+            {
+              "name": "GET /admin/login-credentials",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/login-credentials",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "login-credentials"
+                  ]
+                },
+                "description": "List all user accounts with role, status, last login and shop. Never exposes password hashes."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/login-credentials/{{ownerId}}",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/login-credentials/{{ownerId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "login-credentials",
+                    "{{ownerId}}"
+                  ]
+                },
+                "description": "Single account detail with their shops."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/login-credentials/{{ownerId}}/reset-password",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"password\": \"NewPass@123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/login-credentials/{{ownerId}}/reset-password",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "login-credentials",
+                    "{{ownerId}}",
+                    "reset-password"
+                  ]
+                },
+                "description": "Reset a user password and revoke all their sessions."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Payments",
+          "item": [
+            {
+              "name": "GET /admin/payments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments"
+                  ]
+                },
+                "description": "List all payments with shop info."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "if (pm.response.code === 200 && Array.isArray(json) && json.length > 0) {",
+                      "  pm.collectionVariables.set('paymentId', json[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "GET /admin/payments/{{paymentId}}",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/{{paymentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "{{paymentId}}"
+                  ]
+                },
+                "description": "Payment detail."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/payments",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"shopId\": \"{{shopId}}\",\n  \"subscriptionId\": \"{{subscriptionId}}\",\n  \"amount\": 499,\n  \"currency\": \"INR\",\n  \"status\": \"succeeded\",\n  \"paymentMethod\": \"card\",\n  \"transactionId\": \"pay_test_123\",\n  \"gateway\": \"razorpay\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments"
+                  ]
+                },
+                "description": "Record a payment (manual entry or gateway capture)."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/payments/{{paymentId}}/refund",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Admin action\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/payments/{{paymentId}}/refund",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "payments",
+                    "{{paymentId}}",
+                    "refund"
+                  ]
+                },
+                "description": "Refund a succeeded payment."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Platform Reports",
+          "item": [
+            {
+              "name": "GET /admin/reports/overview",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/reports/overview",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports",
+                    "overview"
+                  ]
+                },
+                "description": "Revenue totals (all time / year / month), payment count, shops, active subscriptions and plan mix."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/reports/revenue",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/reports/revenue",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports",
+                    "revenue"
+                  ]
+                },
+                "description": "Monthly revenue for the last 12 months."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/reports/subscriptions",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/reports/subscriptions",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports",
+                    "subscriptions"
+                  ]
+                },
+                "description": "Subscription distribution by status plus expiring subscriptions."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/reports/shops",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/reports/shops",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports",
+                    "shops"
+                  ]
+                },
+                "description": "Shop growth by month and status breakdown."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/reports/top-shops",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/reports/top-shops",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "reports",
+                    "top-shops"
+                  ]
+                },
+                "description": "Top 10 shops by revenue."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Platform Settings",
+          "item": [
+            {
+              "name": "GET /admin/settings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "settings"
+                  ]
+                },
+                "description": "List all platform settings (typed values)."
+              },
+              "response": []
+            },
+            {
+              "name": "GET /admin/settings/{{settingKey}}",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings/{{settingKey}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "settings",
+                    "{{settingKey}}"
+                  ]
+                },
+                "description": "Get a single platform setting."
+              },
+              "response": []
+            },
+            {
+              "name": "PUT /admin/settings/{{settingKey}}",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"value\": \"StiQR Cloud\",\n  \"type\": \"string\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings/{{settingKey}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "settings",
+                    "{{settingKey}}"
+                  ]
+                },
+                "description": "Create or update a platform setting. Types: string | number | boolean | json."
+              },
+              "response": []
+            },
+            {
+              "name": "DELETE /admin/settings/{{settingKey}}",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings/{{settingKey}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "settings",
+                    "{{settingKey}}"
+                  ]
+                },
+                "description": "Delete a platform setting."
+              },
+              "response": []
+            },
+            {
+              "name": "POST /admin/settings/maintenance",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{adminToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true,\n  \"reason\": \"Scheduled release\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings/maintenance",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "settings",
+                    "maintenance"
+                  ]
+                },
+                "description": "Toggle maintenance mode. While enabled, non-admin logins and requests return 503."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -590,8 +2122,12 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             },
             "description": "Health check: { \"status\": \"ok\" }"
           },
@@ -603,7 +2139,9 @@
             "method": "GET",
             "url": {
               "raw": "{{baseUrl}}/",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": []
             },
             "description": "Root endpoint with environment info."

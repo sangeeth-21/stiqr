@@ -21,9 +21,16 @@ export const authenticate = createMiddleware<{ Bindings: { JWT_SECRET: string; D
   if (!token) return c.json({ error: 'Unauthorized' }, 401)
   try {
     const payload = (await verify(token, c.env.JWT_SECRET, 'HS256')) as { sub: string }
-    const user = await c.env.DB.prepare('SELECT id, email, role, owner_id, status FROM users WHERE id = ?').bind(payload.sub).first<any>()
+    const user = await c.env.DB.prepare(
+      `SELECT u.id, u.email, u.role, u.owner_id, u.status,
+         (SELECT s.value FROM siq_platform_settings s WHERE s.key = 'maintenance_mode') AS maintenance_mode
+       FROM users u WHERE u.id = ?`
+    ).bind(payload.sub).first<any>()
     if (!user) return c.json({ error: 'Unauthorized' }, 401)
     if (user.status !== 'active') return c.json({ error: 'Account suspended' }, 403)
+    if (user.maintenance_mode === 'true' && user.role !== 'admin') {
+      return c.json({ error: 'Service is under maintenance. Please try again later.' }, 503)
+    }
     const permissionRows = await c.env.DB.prepare(
       'SELECT p.code FROM siq_permissions p INNER JOIN siq_role_permissions rp ON rp.permission_id = p.id WHERE rp.role_id = ?'
     ).bind(user.role).all<any>()

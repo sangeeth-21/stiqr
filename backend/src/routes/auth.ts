@@ -13,6 +13,7 @@ import {
   clearLoginAttempts,
   revokeUserSessions,
   logAudit,
+  isMaintenanceMode,
   PASSWORD_PATTERN,
   PASSWORD_MESSAGE,
 } from '../utils/security'
@@ -93,6 +94,9 @@ auth.post('/login', rateLimit({ windowMs: 60_000, max: 10 }), zValidator('json',
     return c.json({ error: 'Invalid email or password' }, 401)
   }
   if (user.status !== 'active') return c.json({ error: 'Account is suspended. Contact support.' }, 403)
+  if (user.role !== 'admin' && await isMaintenanceMode(c.env.DB)) {
+    return c.json({ error: 'Service is under maintenance. Please try again later.' }, 503)
+  }
 
   await clearLoginAttempts(c.env.DB, normalized)
   const accessToken = await signAccessToken(c.env, user)

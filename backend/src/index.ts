@@ -5,6 +5,7 @@ import { createMiddleware } from 'hono/factory'
 import auth from './routes/auth'
 import admin from './routes/admin'
 import owner from './routes/owner'
+import platform from './routes/platform'
 import { rateLimit } from './middleware/rateLimit'
 
 type Bindings = {
@@ -55,6 +56,7 @@ app.get('/health', (c) => c.json({ status: 'ok' }))
 
 app.route('/auth', auth)
 app.route('/admin', admin)
+app.route('/admin', platform)
 app.route('/owner', owner)
 
 export default app
