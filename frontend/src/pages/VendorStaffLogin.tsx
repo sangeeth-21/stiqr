@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, UserCheck, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, Shield } from 'lucide-react';
+import { Store, UserCheck, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, Shield, FlaskConical } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
+import { findDemoUser } from '../store/demoCredentials';
 import ThemeToggle from '../components/UI/ThemeToggle';
 import { StiqrLogo } from '../components/UI/StiqrLogo';
 import apiClient from '../api/client';
@@ -50,10 +51,35 @@ const VendorStaffLogin: React.FC<{ initialTab?: Tab }> = ({ initialTab = 'vendor
       if (user.role === 'owner') navigate('/vendor');
       else navigate('/staff');
     } catch (err: any) {
+      // Demo fallback — lets you view the portals without a live backend
+      const demoUser = findDemoUser(email, password);
+      if (demoUser) {
+        if (activeTab === 'vendor' && demoUser.role !== 'owner') {
+          setError('Access denied. This portal tab is for Shop Owners only.');
+          setLoading(false);
+          return;
+        }
+        if (activeTab === 'staff' && demoUser.role !== 'staff') {
+          setError('Access denied. This portal tab is for Staff Members only.');
+          setLoading(false);
+          return;
+        }
+        login(demoUser, 'demo-access-token', 'demo-refresh-token');
+        if (demoUser.role === 'owner') navigate('/vendor');
+        else navigate('/staff');
+        return;
+      }
       setError(err.response?.data?.message || 'Invalid credentials. Please check your login details and try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fillDemo = (role: 'vendor' | 'staff') => {
+    setActiveTab(role);
+    setEmail(role === 'vendor' ? 'owner@example.com' : 'alice@example.com');
+    setPassword(role === 'vendor' ? 'Owner@1234' : 'Staff@1234');
+    setError('');
   };
 
   const isDark = theme === 'dark';
@@ -281,9 +307,30 @@ const VendorStaffLogin: React.FC<{ initialTab?: Tab }> = ({ initialTab = 'vendor
             </motion.button>
           </form>
 
-          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <a href="/admin/login" style={{ color: '#f97316', fontWeight: 600 }}>Platform Admin Login →</a>
-            <a href="/status" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Track Order Status →</a>
+          <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <FlaskConical size={14} color="#f97316" /> Demo Access
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <motion.button
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => fillDemo('vendor')}
+                style={{ flex: 1, minWidth: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: 12, background: 'rgba(249,115,22,0.08)', border: '1px dashed rgba(249,115,22,0.4)', color: '#f97316', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                <Store size={15} /> Demo Owner
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => fillDemo('staff')}
+                style={{ flex: 1, minWidth: 130, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: 12, background: 'rgba(34,197,94,0.08)', border: '1px dashed rgba(34,197,94,0.4)', color: '#22c55e', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                <UserCheck size={15} /> Demo Staff
+              </motion.button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, flexWrap: 'wrap', gap: 8 }}>
+              <a href="/admin/login" style={{ color: '#f97316', fontWeight: 600 }}>Platform Admin Login →</a>
+              <a href="/status" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Track Order Status →</a>
+            </div>
           </div>
         </div>
       </motion.div>

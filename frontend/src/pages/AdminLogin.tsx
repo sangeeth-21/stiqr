@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Shield, Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, ArrowLeft, FlaskConical } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
+import { findDemoUser } from '../store/demoCredentials';
 import ThemeToggle from '../components/UI/ThemeToggle';
 import { StiqrLogo } from '../components/UI/StiqrLogo';
 import apiClient from '../api/client';
@@ -33,10 +34,28 @@ const AdminLogin: React.FC = () => {
       login(user, data.accessToken, data.refreshToken);
       navigate('/admin');
     } catch (err: any) {
+      // Demo fallback — lets you view the portal without a live backend
+      const demoUser = findDemoUser(email, password);
+      if (demoUser) {
+        if (demoUser.role !== 'admin') {
+          setError('Access denied. This portal is strictly for Platform Administrators.');
+          setLoading(false);
+          return;
+        }
+        login(demoUser, 'demo-access-token', 'demo-refresh-token');
+        navigate('/admin');
+        return;
+      }
       setError(err.response?.data?.message || 'Invalid admin credentials. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fillDemo = () => {
+    setEmail('admin@stiqr.com');
+    setPassword('YourPassword@123');
+    setError('');
   };
 
   const isDark = theme === 'dark';
@@ -190,7 +209,14 @@ const AdminLogin: React.FC = () => {
           </form>
 
           <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+              onClick={fillDemo}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', borderRadius: 12, background: 'rgba(249,115,22,0.08)', border: '1px dashed rgba(249,115,22,0.4)', color: '#f97316', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              <FlaskConical size={16} /> Use Demo Admin Credentials
+            </motion.button>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 14 }}>
               Shop Owner or Staff Member?{' '}
               <a href="/login" style={{ color: '#f97316', fontWeight: 600 }}>Vendor / Staff Sign In →</a>
             </p>
