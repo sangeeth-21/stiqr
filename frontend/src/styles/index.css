@@ -386,3 +386,60 @@ input:focus, select:focus, textarea:focus {
     font-size: 0.8125rem !important;
   }
 }
+
+/* ── Landing Page Responsive ── */
+.menu-button {
+  display: flex !important;
+}
+
+@media (min-width: 769px) {
+  .menu-button {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .hero-float-left,
+  .hero-float-right {
+    display: none !important;
+  }
+}
+
+/* ── Status Lookup (Order Status) Responsive ── */
+.status-search-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.status-step-label {
+  font-size: 11px;
+}
+
+/* Very small screens: stack search controls */
+@media (max-width: 560px) {
+  .status-search-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .status-search-btn {
+    width: 100%;
+  }
+}
+
+/* Compact stepper for small screens */
+@media (max-width: 480px) {
+  .status-stepper .status-step-label {
+    font-size: 10px;
+  }
+  .status-step-line {
+    flex-basis: 24px !important;
+  }
+}
+
+/* Hide "Back" text on tiny screens */
+@media (max-width: 420px) {
+  .back-label {
+    display: none;
+  }
+}

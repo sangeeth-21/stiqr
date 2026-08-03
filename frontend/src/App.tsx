@@ -11,6 +11,7 @@ import VendorLayout from './components/Layout/VendorLayout';
 import StaffLayout from './components/Layout/StaffLayout';
 
 // Pages — lazy loaded for performance
+const Landing = lazy(() => import('./pages/Landing'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const VendorStaffLogin = lazy(() => import('./pages/VendorStaffLogin'));
 const StatusLookup = lazy(() => import('./pages/StatusLookup'));
@@ -88,8 +89,8 @@ function App() {
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Root redirect */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              {/* Main landing page */}
+              <Route path="/" element={<Landing />} />
 
               {/* Public & Login routes */}
               <Route path="/admin/login" element={
