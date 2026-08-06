@@ -147,8 +147,7 @@ const SectionHeading: React.FC<{ eyebrow: string; title: React.ReactNode; sub?: 
 
 /* ════════════════════════ MAIN COMPONENT ════════════════════════ */
 const Landing: React.FC = () => {
-  const { theme } = useThemeStore();
-  const isDark = theme === 'dark';
+  const { isDark } = useThemeStore();
   const navigate = useNavigate();
 
   const [scrolled, setScrolled] = useState(false);

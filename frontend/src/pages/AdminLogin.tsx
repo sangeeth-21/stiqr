@@ -16,7 +16,7 @@ const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuthStore();
-  const { theme } = useThemeStore();
+  const { isDark } = useThemeStore();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,8 +57,6 @@ const AdminLogin: React.FC = () => {
     setPassword('YourPassword@123');
     setError('');
   };
-
-  const isDark = theme === 'dark';
 
   return (
     <div style={{

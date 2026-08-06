@@ -1,6 +1,5 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useThemeStore } from './store/themeStore';
 import { useAuthStore } from './store/authStore';
 import SplashScreen from './components/SplashScreen';
 import './styles/index.css';
@@ -74,12 +73,6 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
-  const { theme } = useThemeStore();
-
-  useEffect(() => {
-    // Apply saved theme on mount
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
 
   return (
     <>

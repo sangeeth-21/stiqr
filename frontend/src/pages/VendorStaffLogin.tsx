@@ -24,7 +24,7 @@ const VendorStaffLogin: React.FC<{ initialTab?: Tab }> = ({ initialTab = 'vendor
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuthStore();
-  const { theme } = useThemeStore();
+  const { isDark } = useThemeStore();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,8 +81,6 @@ const VendorStaffLogin: React.FC<{ initialTab?: Tab }> = ({ initialTab = 'vendor
     setPassword(role === 'vendor' ? 'Owner@1234' : 'Staff@1234');
     setError('');
   };
-
-  const isDark = theme === 'dark';
 
   return (
     <div style={{

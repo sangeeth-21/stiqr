@@ -333,8 +333,7 @@ const StatusLookup: React.FC = () => {
   const [orders, setOrders] = useState<OrderStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const { theme } = useThemeStore();
-  const isDark = theme === 'dark';
+  const { isDark } = useThemeStore();
   const navigate = useNavigate();
 
   const handleSearch = async (e: React.FormEvent) => {

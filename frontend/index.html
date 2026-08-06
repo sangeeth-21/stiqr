@@ -7,6 +7,17 @@
     <meta name="description" content="StiQR ERP — Complete Mobile Shop Management Platform for purchases, sales, services, and inventory." />
     <meta name="theme-color" content="#F97316" />
     <title>StiQR ERP — Mobile Shop Management</title>
+    <script>
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem('stiqr-theme') || '{}');
+          var theme = (stored && stored.state && stored.state.theme) || 'system';
+          var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+          document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
